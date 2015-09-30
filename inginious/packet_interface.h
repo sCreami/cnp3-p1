@@ -73,11 +73,11 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt);
 pkt_status_code pkt_encode(const pkt_t*, char *buf, size_t *len);
 
 /* Getters for the mandatory fields of the struct pkt */
-ptypes_t pkt_get_type  (const pkt_t*);
-uint8_t  pkt_get_window(const pkt_t*);
-uint8_t  pkt_get_seqnum(const pkt_t*);
-uint16_t pkt_get_length(const pkt_t*);
-uint32_t pkt_get_crc   (const pkt_t*);
+ptypes_t pkt_get_type  (const pkt_t* pkt);
+uint8_t  pkt_get_window(const pkt_t* pkt);
+uint8_t  pkt_get_seqnum(const pkt_t* pkt);
+uint16_t pkt_get_length(const pkt_t* pkt);
+uint32_t pkt_get_crc   (const pkt_t* pkt);
 /* This function must return the full payload of the packet,
  * including the eventual padding bytes. */
 const char* pkt_get_payload(const pkt_t*);
