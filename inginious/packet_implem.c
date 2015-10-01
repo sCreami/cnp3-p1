@@ -117,7 +117,7 @@ pkt_status_code pkt_header_decode(const char * data,
 	h->seqnum = (uint8_t)data[1];
 
 	char * length = (char *)(data + 2);
-	h->length = *((uint16_t *)length); /*! endian*/
+	h->length = *(le16toh(uint16_t *)length);
 
 }
 
@@ -126,7 +126,7 @@ pkt_status_code pkt_header_encode(pkt_header_t *h, char * buf, size_t * len)
 	buf[0] = h->meta;
 	buf[1] = h->seqnum;
 
-	char * length = (char *)&(le16toh(h->length));
+	char * length = (char *)&(htole16(h->length));
 	buf[2] = length[0];
 	buf[3] = length[1];
 	*len = 4;
@@ -187,7 +187,7 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 	/*encoding crc*/
 
 	char * crc = (char *)(data + len - CRC_SIZE / 8);
-	pkt->crc = *((uint32_t *)crc); /*! endian*/
+	pkt->crc = *(le32toh(uint32_t *)crc);
 
 	if (rec_crc != pkt->crc)
 		return E_CRC;
@@ -222,7 +222,7 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 
 	/*encoding crc*/
 
-	char * crc = (char *)&(le32toh(pkt->crc));
+	char * crc = (char *)&(htole32(pkt->crc));
 	buf[*len + 0] = crc[0];
 	buf[*len + 1] = crc[1];
 	buf[*len + 2] = crc[2];
