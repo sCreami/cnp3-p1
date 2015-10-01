@@ -103,7 +103,18 @@ void pkt_header_del(pkt_header_t * header)
 	free(header);
 }
 
-pkt_status_code pkt_header_encode(pkt_header_t *, char * buf, size_t * len);
+pkt_status_code pkt_header_encode(pkt_header_t *h, char * buf, size_t * len)
+{
+	buf[0] = h->meta;
+	buf[1] = h->seqnum;
+
+	char * length = (char *)&(h->length); /*! endian*/
+	buf[2] = length[1];
+	buf[3] = length[0];
+	*len = 4;
+
+	return PKT_OK;
+}
 
 pkt_status_code pkt_header_set_type(pkt_header_t *h, const ptypes_t type)
 {
@@ -158,6 +169,18 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 
 pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 {
+	/*encoding header*/
+
+	pkt_header_encode(pkt->header, buf, len);
+
+	/*encoding payload*/
+
+	char *new_buf = buf + *len;
+
+	/*encodeing crc*/
+
+	/*...*/
+
 	return PKT_OK;
 }
 
@@ -232,7 +255,26 @@ uint32_t pkt_get_crc(const pkt_t* pkt)
 
 const char* pkt_get_payload(const pkt_t* pkt)
 {
-	return NULL;
+	char PADDING_CHAR = '=';
+
+	int length = pkt_get_length(pkt);
+
+	if (length % 4)
+		length += 4 - length % 4;
+
+	char * result = (char *)malloc(length + 1);
+	result[length] = '\0';
+
+	if (result == NULL)
+		return NULL;
+
+	int i;
+	for (i = 0; i < length; i++)
+		result[i] = PADDING_CHAR;
+
+	strncpy(result, pkt->payload, pkt_get_length(pkt));
+
+	return result;
 }
 
 /*PRINT*/
@@ -268,6 +310,12 @@ void buffer_print(char * buffer, int length)
 
 int main()
 {
-	pkt_t * pkt = pkt_build(pkt_header_build(PTYPE_DATA, 17, 42), "12345678");
+	pkt_t * pkt = pkt_build(pkt_header_build(PTYPE_DATA, 17, 42), "123456789");
 	pkt_print(pkt);
+
+	char buffer[2048];
+	size_t length = 2048;
+
+	pkt_header_encode(pkt->header, buffer, &length);
+	buffer_print(buffer, length);
 }
