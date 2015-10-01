@@ -5,4 +5,4 @@ receiver: receiver.c
 	gcc -o receiver receiver.c
 
 pkt: packet_implem.c
-	gcc -o pkt packet_implem.c -lz
+	gcc -o pkt packet_implem.c -lz -Wall -Werror -Wextra -Wshadow

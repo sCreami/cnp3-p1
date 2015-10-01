@@ -85,11 +85,13 @@ pkt_t * pkt_build(pkt_header_t * header, char * payload)
 		return NULL;
 
 	result->header = header;
-	result->payload = payload;
-	result->crc = 0; /*improve*/
 
-	if (result->payload != NULL)
-		pkt_set_length(result, strlen(result->payload));
+	if (payload == NULL)
+		result->payload = NULL;
+	else
+		pkt_set_payload(result, payload, strlen(payload));
+
+	result->crc = 0; /*improve*/
 
 	return result;
 }
@@ -113,6 +115,9 @@ pkt_status_code pkt_header_decode(const char * data,
 	 						      const size_t len,
 								  pkt_header_t *h)
 {
+	if (len < HEADER_SIZE / 8)
+		return E_NOHEADER;
+
 	h->meta = (uint8_t)data[0];
 	h->seqnum = (uint8_t)data[1];
 
@@ -214,7 +219,7 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 
 	/*decoding crc*/
 
-	uint32_t rec_crc = crc32(0, data, len - CRC_SIZE / 8);
+	uint32_t rec_crc = crc32(0, (const Bytef *)data, (size_t)(len - CRC_SIZE / 8));
 	char * crc = (char *)(data + len - CRC_SIZE / 8);
 	pkt->crc = *(le32toh(uint32_t *)crc);
 
@@ -224,28 +229,41 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 	/*decoding payload*/
 
 	if (pkt_get_type(pkt) != PTYPE_DATA)
+	{
 		if (len == (HEADER_SIZE + CRC_SIZE) / 8)
 			return PKT_OK;
 		else
 			return E_LENGTH;
+	}
 
 	if (pkt_get_length(pkt))
-		if (len < pkt_get_length(pkt) + (HEADER_SIZE + CRC_SIZE) / 8)
+	{
+		if (len < (size_t)(pkt_get_length(pkt) + (HEADER_SIZE + CRC_SIZE) / 8))
+		{
 			if (len == (HEADER_SIZE + CRC_SIZE) / 8)
 				return E_NOPAYLOAD;
 			else
 				return E_LENGTH;
+		}
 		else
+		{
 			pkt_set_payload(pkt, data + HEADER_SIZE / 8, pkt_get_length(pkt));
+		}
+	}
 	else
+	{
 		return E_NOPAYLOAD;
+	}
 
-	return PKT_OK;
+	if (strlen(pkt_get_payload(pkt)) % 4)
+		return E_PADDING;
+	else
+		return PKT_OK;
 }
 
 pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 {
-	if (*len < (HEADER_SIZE + CRC_SIZE) / 8 + pkt_get_length(pkt))
+	if (*len < (size_t)((HEADER_SIZE + CRC_SIZE) / 8 + pkt_get_length(pkt)))
 		return E_NOMEM;
 
 	/*encoding header*/
@@ -256,11 +274,16 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 
 	char * payload = (char *)pkt_get_payload(pkt);
 
+	int l = 0;
 	if (payload != NULL)
-		strncpy(buf + *len, payload, strlen(payload));
+	{
+		l = pkt_get_length(pkt);
+		if (l % 4)
+		 	l += 4 - l % 4;
+		strncpy(buf + *len, payload, l);
+	}
 
-	*len += strlen(payload);
-	free(payload);
+	*len += l;
 
 	/*encoding crc*/
 
@@ -311,15 +334,29 @@ pkt_status_code pkt_set_crc(pkt_t *pkt, const uint32_t crc)
 
 pkt_status_code pkt_set_payload(pkt_t *pkt, const char *d, const uint16_t len)
 {
+	char PADDING_CHAR = 0b00000000;
+
 	if (len > MAX_PAYLOAD_SIZE)
 		return E_NOMEM;
 
 	free(pkt->payload);
-	pkt->payload = (char *)malloc(len + 1);
-	strncpy(pkt->payload, d, len);
-	pkt->payload[len] = '\0';
 
-	return PKT_OK;
+	int length = len;
+	if (length % 4)
+		length += 4 - length % 4;
+
+	pkt->payload = (char *)malloc(length);
+
+	if (pkt->payload == NULL)
+		return E_NOMEM;
+
+	int i;
+	for (i = len; i < length; i++)
+		pkt->payload[i] = PADDING_CHAR;
+
+	strncpy(pkt->payload, d, len);
+
+	return pkt_set_length(pkt, len);
 }
 
 /*GETTERS*/
@@ -351,29 +388,7 @@ uint32_t pkt_get_crc(const pkt_t* pkt)
 
 const char* pkt_get_payload(const pkt_t* pkt)
 {
-	char PADDING_CHAR = '=';
-
-	if (pkt->payload == NULL)
-		return NULL;
-
-	int length = pkt_get_length(pkt);
-
-	if (length % 4)
-		length += 4 - length % 4;
-
-	char * result = (char *)malloc(length + 1);
-	result[length] = '\0';
-
-	if (result == NULL)
-		return NULL;
-
-	int i;
-	for (i = 0; i < length; i++)
-		result[i] = PADDING_CHAR;
-
-	strncpy(result, pkt->payload, pkt_get_length(pkt));
-
-	return result;
+	return pkt->payload;
 }
 
 /*PRINT*/
@@ -407,21 +422,24 @@ void buffer_print(char * buffer, int length)
 
 int main()
 {
-	pkt_t * pkt = pkt_build(pkt_header_build(PTYPE_DATA, 17, 42), "123456789");
+	pkt_t * pkt = pkt_build(pkt_header_build(PTYPE_DATA, 17, 42), "12345");
 
 	char buffer[2048];
 	size_t length = 2048;
 
 	pkt_encode(pkt, buffer, &length);
-	pkt_set_crc(pkt, (const uint32_t)crc32(0, buffer, length - CRC_SIZE / 8));
+	uint32_t crc = crc32(0, (const Bytef *)buffer, (size_t)(length - CRC_SIZE / 8));
+	pkt_set_crc(pkt, crc);
 	//pkt_set_crc(pkt, 96);
 	pkt_print(pkt);
 
 	length = 2048;
 	pkt_encode(pkt, buffer, &length);
 	buffer_print(buffer, length);
-
+	
 	pkt_t * new_pkt = pkt_build(pkt_header_build(PTYPE_ACK, 0, 0), NULL);
 	pkt_decode(buffer, length, new_pkt);
 	pkt_print(new_pkt);
+
+	return EXIT_SUCCESS;
 }
