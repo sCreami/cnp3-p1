@@ -8,53 +8,54 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define TYPE_SIZE 3
-#define WINDOW_SIZE 5
-#define SEQNUM_SIZE 8
-#define LENGTH_SIZE 16
-#define HEADER_SIZE 32
+#define TYPE_SIZE    3
+#define WINDOW_SIZE  5
+#define SEQNUM_SIZE  8
+#define LENGTH_SIZE  16
+#define HEADER_SIZE  32
 #define PAYLOAD_SIZE 4096
-#define CRC_SIZE 32
+#define CRC_SIZE     32
 
 struct __attribute__((__packed__)) pkt
 {
 	/*header*/
 
-	uint8_t meta;
-	uint8_t seqnum;
+	uint8_t  meta;
+	uint8_t  seqnum;
 	uint16_t length;
 
 	/*content*/
 
-	char * payload;
+	char *   payload;
 	uint32_t crc;
 };
 
 /* PROTOTYPES */
 
-pkt_t * pkt_build(ptypes_t t, uint8_t w, uint8_t s, char * payload);
+pkt_t *pkt_build(ptypes_t t, uint8_t w, uint8_t s, char * payload);
 
 void pkt_print(pkt_t * pkt);
 void buffer_print(char * buffer, int length);
 
 /*ADDS*/
 
-pkt_t * pkt_build(ptypes_t t, uint8_t w, uint8_t s, char * payload)
+pkt_t *pkt_build(ptypes_t t, uint8_t w, uint8_t s, char * payload)
 {
-	pkt_t * result;
-	result = (pkt_t *)malloc(sizeof(pkt_t));
+	pkt_t *result =  (pkt_t *)malloc(sizeof(pkt_t));
 
-	if (result == NULL)
+	if (!result)
 		return NULL;
 
-	result->meta = 0;
-	result->seqnum = s;
-	result->length = 0;
+	*result = (pkt_t) {
+		.meta   = 0,
+		.seqnum = 0,
+		.length = 0,
+	} 
 
 	pkt_set_type(result, t);
 	pkt_set_window(result, w);
 
-	if (payload == NULL)
+	if (!payload)
 		result->payload = NULL;
 	else
 		pkt_set_payload(result, payload, strlen(payload));
