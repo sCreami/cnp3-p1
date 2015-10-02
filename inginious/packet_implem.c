@@ -24,8 +24,8 @@ struct __attribute__((__packed__)) pkt
 {
 	/*header*/
 
-	ptypes_t type    : 3;
 	uint8_t  window  : 5;
+	ptypes_t type    : 3;
 	uint8_t  seqnum  : 8;
 	uint16_t length  : 16;
 
@@ -104,9 +104,12 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 
 	uint8_t type = pkt_get_type(pkt);
 
-	if (type != PTYPE_DATA && type != PTYPE_ACK && type != PTYPE_NACK)
+	if (type != PTYPE_DATA &&
+		type != PTYPE_ACK &&
+		type != PTYPE_NACK)
 		return E_TYPE;
-	else if (pkt->length > MAX_PAYLOAD_SIZE)
+
+	if (pkt->length > MAX_PAYLOAD_SIZE)
 		return E_LENGTH;
 	else if (pkt_get_window(pkt) > MAX_WINDOW_SIZE)
 		return E_WINDOW;
@@ -149,15 +152,17 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 		return E_NOPAYLOAD;
 	}
 
-	if (strlen(pkt_get_payload(pkt)) % 4)
+	/*if (strlen(pkt_get_payload(pkt)) % 4)
 		return E_PADDING;
-	else
+	else*/
 		return PKT_OK;
 }
 
 pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 {
 	/*encoding header*/
+
+	//buffer_print((char *)pkt, 4);
 
 	memcpy(buf, pkt, 2);
 
@@ -181,8 +186,8 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 	*len += l;
 
 	/*encoding crc*/
-
-	uint32_t crc_int = htobe32(pkt->crc);
+	uint32_t crc = crc32(0, (Bytef*)buf, *len);
+	uint32_t crc_int = htobe32(crc);
 	memcpy(buf + *len, &crc_int, 4);
 	*len += 4;
 
@@ -316,7 +321,7 @@ void buffer_print(char * buffer, int length)
 {
 	int i;
 	for (i = 0; i < length; i++)
-		printf("%d ", (int)buffer[i]);
+		printf("%u ", (unsigned char)buffer[i]);
 	printf("\n");
 }
 
@@ -329,18 +334,36 @@ int main()
 	char buffer[2048];
 	size_t length = 2048;
 
-	pkt_encode(pkt, buffer, &length);
-	uint32_t crc = crc32(0, (const Bytef *)buffer, (size_t)(length - CRC_SIZE / 8));
+	pkt_status_code code = PKT_OK;
+
+	code = pkt_encode(pkt, buffer, &length);
+	if (code != PKT_OK)
+	{
+		printf("%d\n", code);
+		return EXIT_FAILURE;
+	}
+	uint32_t crc = crc32(0L, Z_NULL, 0);
+	crc = crc32(0, (const Bytef *)buffer, (size_t)(length - CRC_SIZE / 8));
 	pkt_set_crc(pkt, crc);
 	//pkt_set_crc(pkt, 96);
 	pkt_print(pkt);
 
 	length = 2048;
-	pkt_encode(pkt, buffer, &length);
+	code = pkt_encode(pkt, buffer, &length);
+	if (code != PKT_OK)
+	{
+		printf("%d\n", code);
+		return EXIT_FAILURE;
+	}
 	buffer_print(buffer, length);
 
 	pkt_t * new_pkt = pkt_new();
-	pkt_decode(buffer, length, new_pkt);
+	code = pkt_decode(buffer, length, new_pkt);
+	if (code != PKT_OK)
+	{
+		printf("%d\n", code);
+		return EXIT_FAILURE;
+	}
 	pkt_print(new_pkt);
 
 	return EXIT_SUCCESS;
