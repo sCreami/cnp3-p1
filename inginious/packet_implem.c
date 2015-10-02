@@ -48,9 +48,9 @@ pkt_t *pkt_build(ptypes_t t, uint8_t w, uint8_t s, char * payload)
 
 	*result = (pkt_t) {
 		.meta   = 0,
-		.seqnum = 0,
+		.seqnum = s,
 		.length = 0,
-	} 
+	};
 
 	pkt_set_type(result, t);
 	pkt_set_window(result, w);
@@ -100,7 +100,7 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 	pkt->seqnum = (uint8_t)data[1];
 
 	char * length = (char *)(data + 2);
-	pkt->length = *(le16toh(uint16_t *)length);
+	pkt->length = be16toh(*(uint16_t *)length);
 
 	uint8_t type = pkt_get_type(pkt);
 
@@ -115,7 +115,7 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 
 	uint32_t rec_crc = crc32(0, (const Bytef *)data, (size_t)(len - CRC_SIZE / 8));
 	char * crc = (char *)(data + len - CRC_SIZE / 8);
-	pkt->crc = *(le32toh(uint32_t *)crc);
+	pkt->crc = be32toh(*(uint32_t *)crc);
 
 	if (rec_crc != pkt->crc)
 		return E_CRC;
@@ -162,9 +162,8 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 	buf[0] = pkt->meta;
 	buf[1] = pkt->seqnum;
 
-	char * length = (char *)&(htole16(pkt->length));
-	buf[2] = length[0];
-	buf[3] = length[1];
+	uint16_t length_int = htobe16(pkt->length);
+	memcpy(buf + 2, &length_int, 2);
 	*len = 4;
 
 	/*encoding payload*/
@@ -184,11 +183,8 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 
 	/*encoding crc*/
 
-	char * crc = (char *)&(htole32(pkt->crc));
-	buf[*len + 0] = crc[0];
-	buf[*len + 1] = crc[1];
-	buf[*len + 2] = crc[2];
-	buf[*len + 3] = crc[3];
+	uint32_t crc_int = htobe32(pkt->crc);
+	memcpy(buf + *len, &crc_int, 4);
 	*len += 4;
 
 	return PKT_OK;
