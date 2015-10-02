@@ -8,6 +8,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#if __APPLE__
+	#include "osdep/endian.h"
+#endif
+
 #define TYPE_SIZE    3
 #define WINDOW_SIZE  5
 #define SEQNUM_SIZE  8
