@@ -24,9 +24,10 @@ struct __attribute__((__packed__)) pkt
 {
 	/*header*/
 
-	uint8_t  meta;
-	uint8_t  seqnum;
-	uint16_t length;
+	ptypes_t type    : 3;
+	uint8_t  window  : 5;
+	uint8_t  seqnum  : 8;
+	uint16_t length  : 16;
 
 	/*content*/
 
@@ -51,13 +52,11 @@ pkt_t *pkt_build(ptypes_t t, uint8_t w, uint8_t s, char * payload)
 		return NULL;
 
 	*result = (pkt_t) {
-		.meta   = 0,
+		.type   = t,
+		.window = w,
 		.seqnum = s,
 		.length = 0,
 	};
-
-	pkt_set_type(result, t);
-	pkt_set_window(result, w);
 
 	if (!payload)
 		result->payload = NULL;
@@ -100,11 +99,8 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 
 	/*decoding header*/
 
-	pkt->meta = (uint8_t)data[0];
-	pkt->seqnum = (uint8_t)data[1];
-
-	char * length = (char *)(data + 2);
-	pkt->length = be16toh(*(uint16_t *)length);
+	memcpy(pkt, data, 4);
+	pkt->length = be16toh(pkt->length);
 
 	uint8_t type = pkt_get_type(pkt);
 
@@ -117,9 +113,9 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
 
 	/*decoding crc*/
 
-	uint32_t rec_crc = crc32(0, (const Bytef *)data, (size_t)(len - CRC_SIZE / 8));
-	char * crc = (char *)(data + len - CRC_SIZE / 8);
-	pkt->crc = be32toh(*(uint32_t *)crc);
+	uint32_t rec_crc = crc32(0, (const Bytef *)data, len - 4);
+	memcpy(&pkt->crc, data + len - 4, 4);
+	pkt->crc = be32toh(pkt->crc);
 
 	if (rec_crc != pkt->crc)
 		return E_CRC;
@@ -163,8 +159,7 @@ pkt_status_code pkt_encode(const pkt_t* pkt, char *buf, size_t *len)
 {
 	/*encoding header*/
 
-	buf[0] = pkt->meta;
-	buf[1] = pkt->seqnum;
+	memcpy(buf, pkt, 2);
 
 	uint16_t length_int = htobe16(pkt->length);
 	memcpy(buf + 2, &length_int, 2);
@@ -201,8 +196,7 @@ pkt_status_code pkt_set_type(pkt_t *pkt, const ptypes_t type)
 	if (type != PTYPE_DATA && type != PTYPE_ACK && type != PTYPE_NACK)
 		return E_TYPE;
 
-	pkt->meta = pkt->meta & 0b00011111;
-	pkt->meta += (type << 5);
+	pkt->type = type;
 
 	return PKT_OK;
 }
@@ -212,8 +206,7 @@ pkt_status_code pkt_set_window(pkt_t *pkt, const uint8_t window)
 	if (window > MAX_WINDOW_SIZE)
 		return E_WINDOW;
 
-	pkt->meta = pkt->meta & 0b11100000;
-	pkt->meta += window;
+	pkt->window = window;
 
 	return PKT_OK;
 }
@@ -272,12 +265,12 @@ pkt_status_code pkt_set_payload(pkt_t *pkt, const char *d, const uint16_t len)
 
 ptypes_t pkt_get_type(const pkt_t* pkt)
 {
-	return (pkt->meta >> 5);
+	return pkt->type;
 }
 
 uint8_t pkt_get_window(const pkt_t* pkt)
 {
-	return (pkt->meta & 0b00011111);
+	return pkt->window;
 }
 
 uint8_t pkt_get_seqnum(const pkt_t* pkt)
