@@ -73,12 +73,7 @@ pkt_t *pkt_build(ptypes_t t, uint8_t w, uint8_t s, char *payload)
 
 pkt_t *pkt_new()
 {
-    pkt_t *packet = pkt_build(PTYPE_DATA, 0, 0, NULL);
-
-    if (!packet)
-        return NULL;
-
-    return packet;
+    return pkt_build(PTYPE_DATA, 0, 0, NULL);
 }
 
 void pkt_del(pkt_t *pkt)
