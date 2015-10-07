@@ -28,19 +28,22 @@ int create_socket(struct sockaddr_in6 *source_addr,
 {
     int status, sfd;
 
-    source_addr->sin6_port = htons(src_port);
-    dest_addr->sin6_port   = htons(dst_port);
-
     sfd = socket(AF_INET6, SOCK_DGRAM, 0);
     handle(sfd);
 
-    status = bind(sfd, (struct sockaddr *) source_addr,
-             sizeof(struct sockaddr));
-    handle(status);
+    if (source_addr) {
+        source_addr->sin6_port = htons(src_port);
+        status = bind(sfd, (struct sockaddr *) source_addr,
+                 sizeof(struct sockaddr));
+        handle(status);
+    }
 
-    status = connect(sfd, (struct sockaddr *) dest_addr,
-             sizeof(struct sockaddr));
-    handle(status);
+    if (dest_addr) {
+        dest_addr->sin6_port = htons(dst_port);
+        status = connect(sfd, (struct sockaddr *) dest_addr,
+                 sizeof(struct sockaddr));
+        handle(status);
+    }
 
     return sfd;
 }
