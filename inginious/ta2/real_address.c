@@ -34,9 +34,8 @@ const char * real_address(const char *address, struct sockaddr_in6 *rval)
     if (status)
         return gai_strerror(status);
 
-    for (p = res; p != NULL; p = p->ai_next) {
-        rval = (struct sockaddr_in6 *) p->ai_addr;
-    }
+    for (p = res; p != NULL; p = p->ai_next)
+        memcpy(rval, p->ai_addr, sizeof(struct sockaddr_in6));
 
     return NULL;
 }
