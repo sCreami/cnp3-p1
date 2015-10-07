@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	/* Resolve the hostname */
-	struct in6_addr addr;
+	struct sockaddr_in6 addr;
 	const char *err = real_address(host, &addr);
 	if (err) {
 		fprintf(stderr, "Could not resolve hostname %s: %s\n", host, err);
@@ -60,7 +60,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (sfd < 0) {
-		close(sfd);
 		fprintf(stderr, "Failed to create the socket!\n");
 		return EXIT_FAILURE;
 	}
