@@ -1,8 +1,8 @@
 #ifndef __REAL_ADDRESS_H_
 #define __REAL_ADDRESS_H_
 
-#include <netinet/in.h> /* * in6_addr */
-#include <sys/types.h> /* in6_addr */
+#include <netinet/in.h> /* * sockaddr_in6 */
+#include <sys/types.h> /* sockaddr_in6 */
 
 /* Resolve the resource name to an usable IPv6 address
  * @address: The name to resolve
@@ -12,6 +12,6 @@
  *          (const char* means the caller cannot modify or free the return value,
  *           so do not use malloc!)
  */
-const char * real_address(const char *address, struct in6_addr *rval);
+const char * real_address(const char *address, struct sockaddr_in6 *rval);
 
 #endif
