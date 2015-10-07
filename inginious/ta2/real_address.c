@@ -24,7 +24,7 @@ const char * real_address(const char *address, struct sockaddr_in6 *rval)
 
     hints = (struct addrinfo) {
         .ai_family    = AF_INET6,
-        .ai_socktype  = SOCK_STREAM,
+        .ai_socktype  = SOCK_DGRAM,
         .ai_flags     = 0,
         .ai_protocol  = 0,
     };
