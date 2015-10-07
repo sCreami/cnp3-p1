@@ -1,5 +1,6 @@
 #include "create_socket.h"
 
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdlib.h>
@@ -29,8 +30,8 @@ int create_socket(struct sockaddr_in6 *source_addr,
     int status, sfd;
     socklen_t dest_len;
 
-    source_addr->sin6_port = src_port;
-    dest_addr->sin6_port   = dst_port;
+    source_addr->sin6_port = htons(src_port);
+    dest_addr->sin6_port   = htons(dst_port);
 
     sfd = socket(AF_INET6, SOCK_STREAM, 0);
     handle(sfd);
@@ -50,4 +51,4 @@ int create_socket(struct sockaddr_in6 *source_addr,
     return sfd;
 }
 
-int main(int argc, char **argv){argc--;argv++;return 0;}
+//int main(int argc, char **argv){argc--;argv++;return 0;}
