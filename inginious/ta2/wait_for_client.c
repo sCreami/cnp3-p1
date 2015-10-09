@@ -21,7 +21,7 @@ int wait_for_client(int sfd)
 
 	fr_len = sizeof(fr);
 
-	if (recvfrom(sfd, buffer, sizeof(buffer), MSG_PEEK, &fr, &fr_len) != -1) {
+	if (recvfrom(sfd, buffer, 1024, MSG_PEEK, &fr, &fr_len) != -1) {
 
 		if (connect(sfd, &fr, fr_len) != -1) {
 			return 0;
