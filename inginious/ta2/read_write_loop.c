@@ -36,7 +36,7 @@ void read_write_loop(const int sfd)
 
         if (FD_ISSET(sfd, &fds)) {
 
-            if ((rsize = read(sfd, buffer, 1024)) > 0) {
+            if ((rsize = read(sfd, buffer, sizeof(buffer))) > 0) {
 
                 if (write(STDOUT_FILENO, buffer, rsize) < 0) {
                     perror("write sfd");
@@ -54,7 +54,7 @@ void read_write_loop(const int sfd)
 
         if (FD_ISSET(STDIN_FILENO, &fds)) {
 
-            if ((wsize = read(STDIN_FILENO, buffer, 1024)) > 0) {
+            if ((wsize = read(STDIN_FILENO, buffer, sizeof(buffer))) > 0) {
 
                 if (write(sfd, buffer, wsize) < 0) {
                     perror("write stdin");
