@@ -34,18 +34,16 @@ int create_socket(struct sockaddr_in6 *source_addr,
     if (source_addr) {
         source_addr->sin6_port = htons(src_port);
         status = bind(sfd, (struct sockaddr *) source_addr,
-                 sizeof(struct sockaddr));
+                 sizeof(struct sockaddr_in6));
         handle(status);
     }
 
     if (dest_addr) {
         dest_addr->sin6_port = htons(dst_port);
         status = connect(sfd, (struct sockaddr *) dest_addr,
-                 sizeof(struct sockaddr));
+                 sizeof(struct sockaddr_in6));
         handle(status);
     }
 
     return sfd;
 }
-
-//int main(int argc, char **argv){argc--;argv++;return 0;}
