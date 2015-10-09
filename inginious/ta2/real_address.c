@@ -10,8 +10,8 @@
  * @rval: Where the resulting IPv6 address descriptor should be stored
  * @return: NULL if it succeeded, or a pointer towards
  *          a string describing the error if any.
- *          (const char* means the caller cannot modify or free the return value,
- *           so do not use malloc!)
+ *          (const char* means the caller cannot modify or free the return
+ *          value, so do not use malloc!)
  */
 const char * real_address(const char *address, struct sockaddr_in6 *rval)
 {

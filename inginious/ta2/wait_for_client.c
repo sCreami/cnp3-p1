@@ -11,8 +11,8 @@
  * and connect the socket to the source addresse of the received message.
  * @sfd: a file descriptor to a bound socket but not yet connected
  * @return: 0 in case of success, -1 otherwise
- * @POST: This call is idempotent, it does not 'consume' the data of the message,
- * and could be repeated several times blocking only at the first call.
+ * @POST: This call is idempotent, it does not 'consume' the data of the
+ * message, and could be repeated several times blocking only at the first call.
  */
 int wait_for_client(int sfd)
 {
@@ -22,7 +22,8 @@ int wait_for_client(int sfd)
 
     fr_len = sizeof(struct sockaddr_in6);
 
-    if (recvfrom(sfd, buffer, 1024, MSG_PEEK, (struct sockaddr *)&fr, &fr_len) != -1) {
+    if (recvfrom(sfd, buffer, 1024, MSG_PEEK,
+                 (struct sockaddr *)&fr, &fr_len) != -1) {
 
         if (connect(sfd, (struct sockaddr *)&fr, fr_len) != -1) {
             return 0;
