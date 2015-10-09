@@ -39,21 +39,3 @@ const char * real_address(const char *address, struct sockaddr_in6 *rval)
 
     return NULL;
 }
-
-// int main(int argc, char *argv[])
-// {
-//  argc++; //FY
-
-//  struct sockaddr_in6 rval;
-//  const char *s = real_address(argv[1], &rval);
-
-//  if (s) {
-//      printf("%s\n", s);
-//      return 1;
-//  }
-
-//  char buf[30];
-//  printf("%s\n", inet_ntop(AF_INET6, &rval.sin6_addr, buf, sizeof(buf)));
-
-//  return 0;
-// }
