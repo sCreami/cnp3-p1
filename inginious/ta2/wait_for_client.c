@@ -16,22 +16,22 @@
  */
 int wait_for_client(int sfd)
 {
-	char buffer[1024];
-	struct sockaddr_in6 fr;
-	socklen_t fr_len;
+    char buffer[1024];
+    struct sockaddr_in6 fr;
+    socklen_t fr_len;
 
-	fr_len = sizeof(struct sockaddr_in6);
+    fr_len = sizeof(struct sockaddr_in6);
 
-	if (recvfrom(sfd, buffer, 1024, MSG_PEEK, (struct sockaddr *)&fr, &fr_len) != -1) {
+    if (recvfrom(sfd, buffer, 1024, MSG_PEEK, (struct sockaddr *)&fr, &fr_len) != -1) {
 
-		if (connect(sfd, (struct sockaddr *)&fr, fr_len) != -1) {
-			return 0;
-		}
+        if (connect(sfd, (struct sockaddr *)&fr, fr_len) != -1) {
+            return 0;
+        }
 
-		perror("connect");
-		return -1;
-	}
+        perror("connect");
+        return -1;
+    }
 
-	perror("recvfrom");
-	return -1;
+    perror("recvfrom");
+    return -1;
 }
