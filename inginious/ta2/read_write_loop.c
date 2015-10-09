@@ -15,16 +15,14 @@
  */
 void read_write_loop(const int sfd)
 {
-	FILE* fp;
 	int status;
 	fd_set fds;
-	char buffer[2048];
+	char buffer[1024];
 	struct timeval tv;
-
-	fp = fdopen(sfd, "rw");
+	ssize_t rsize, wsize;
 
 	tv = (struct timeval) {
-		.tv_sec  = 2,
+		.tv_sec  = 5,
 		.tv_usec = 0,
 	};
 
@@ -34,7 +32,7 @@ void read_write_loop(const int sfd)
 		FD_SET(STDIN_FILENO, &fds);
 		FD_SET(sfd, &fds);
 
-		status = select(FD_SETSIZE, &fds, &fds, NULL, &tv);
+		status = select(FD_SETSIZE, &fds, NULL, NULL, &tv);
 
 		if (status == -1) {
 			perror("select");
@@ -43,42 +41,41 @@ void read_write_loop(const int sfd)
 
 		if (FD_ISSET(sfd, &fds)) {
 
-			if (fread(buffer, sizeof(char), sizeof(buffer), fp) > 0) {
+			if ((rsize = read(sfd, buffer, 1024)) > 0) {
 
-				if (fwrite(buffer, sizeof(char), sizeof(buffer), stdout) > 0) {
-					perror("fwrite sfd");
+				if (write(STDOUT_FILENO, buffer, rsize) < 0) {
+					perror("write sfd");
 					return;
 				}
 
+				fflush(stdout);
 				bzero(buffer, sizeof(buffer));
 
 			} else {
-				perror("fread sfd");
+				perror("read sfd");
 				return;
 			}
 		}
 
 		if (FD_ISSET(STDIN_FILENO, &fds)) {
 
-			if (feof(stdin))
-				return;
-			
-			if (fread(buffer, sizeof(char), sizeof(buffer), stdin) > 0) {
+			if ((wsize = read(STDIN_FILENO, buffer, 1024)) > 0) {
 
-				if (fwrite(buffer, sizeof(char), sizeof(buffer), fp) > 0) {
-					perror("fwrite stdin");
+				if (write(sfd, buffer, wsize) < 0) {
+					perror("write stdin");
 					return;
 				}
 
 				bzero(buffer, sizeof(buffer));
 
+			} else if (wsize == 0) {
+				//EOF
+				return;
+				
 			} else {
-				perror("fread stdin");
+				perror("read stdin");
 				return;
 			}
 		}
 	}
 }
-
-// int main(int argc, char *argv[])
-// {return 0;}

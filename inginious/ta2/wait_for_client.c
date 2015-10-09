@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <arpa/inet.h>
 
 /* Block the caller until a message is received on sfd,
  * and connect the socket to the source addresse of the received message.
@@ -16,14 +17,14 @@
 int wait_for_client(int sfd)
 {
 	char buffer[1024];
-	struct sockaddr fr;
+	struct sockaddr_in6 fr;
 	socklen_t fr_len;
 
-	fr_len = sizeof(fr);
+	fr_len = sizeof(struct sockaddr_in6);
 
-	if (recvfrom(sfd, buffer, 1024, MSG_PEEK, &fr, &fr_len) != -1) {
+	if (recvfrom(sfd, buffer, 1024, MSG_PEEK, (struct sockaddr *)&fr, &fr_len) != -1) {
 
-		if (connect(sfd, &fr, fr_len) != -1) {
+		if (connect(sfd, (struct sockaddr *)&fr, fr_len) != -1) {
 			return 0;
 		}
 
