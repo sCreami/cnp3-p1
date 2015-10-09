@@ -15,7 +15,6 @@
  */
 void read_write_loop(const int sfd)
 {
-	int status;
 	fd_set fds;
 	char buffer[1024];
 	struct timeval tv;
@@ -32,9 +31,7 @@ void read_write_loop(const int sfd)
 		FD_SET(STDIN_FILENO, &fds);
 		FD_SET(sfd, &fds);
 
-		status = select(FD_SETSIZE, &fds, NULL, NULL, &tv);
-
-		if (status == -1) {
+		if (select(FD_SETSIZE, &fds, NULL, NULL, &tv) == -1) {
 			perror("select");
 			return;
 		}

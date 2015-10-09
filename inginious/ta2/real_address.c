@@ -1,7 +1,5 @@
 #include "real_address.h"
 
-#include <arpa/inet.h> /* inet_ntop */
-
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
