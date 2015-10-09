@@ -2,10 +2,7 @@
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-#include <errno.h>
 
 #define error(x,y)  \
     if (x == -1) {  \

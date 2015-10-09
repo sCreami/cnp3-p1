@@ -1,12 +1,10 @@
 #include "read_write_loop.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <unistd.h>
-#include <errno.h>
 
 /* Loop reading a socket and printing to stdout,
  * while reading stdin and writing to the socket

@@ -1,8 +1,6 @@
 #include "real_address.h"
 
 #include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h> /* bzero */
 
 /* Resolve the resource name to an usable IPv6 address
