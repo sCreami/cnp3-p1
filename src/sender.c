@@ -46,7 +46,7 @@ void arguments_parser(int argc, char **argv)
             // looking for aliens
             strtol(opt, &endptr, 10);
             if (*endptr != '\0')
-                fprintf(stderr, "unknown argument: %s\n", opt);
+                fprintf(stderr, "illegal option: %s\n", opt);
         }
     }
 }
