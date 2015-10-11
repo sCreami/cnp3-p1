@@ -1,10 +1,10 @@
 CC      = gcc
 CFLAGS  = -Wall    \
-		  -Werror  \
-		  -Wshadow \
-		  -Wextra  \
-		  -g
-LFLAGS  = 
+          -Werror  \
+          -Wshadow \
+          -Wextra  \
+          -g
+LFLAGS  = #-lz
 
 SRC := $(foreach ssrc, src, $(wildcard $(ssrc)/*.c))
 OBJ := $(SRC:.c=.o)
