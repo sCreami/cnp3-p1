@@ -4,9 +4,9 @@
 // Saves the local configuration for
 // the current instance.
 struct snd_config {
-	char *addr;
-	int   port;
-	int   verbose;
+    char *addr;
+    int   port;
+    int   verbose;
 };
 
 #endif /* _SENDER_H */
