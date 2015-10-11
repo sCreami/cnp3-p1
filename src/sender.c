@@ -24,6 +24,7 @@ void arguments_parser(int argc, char **argv)
     for (int i = 1; i < argc; i++) {
         opt = argv[i];
 
+        recycle:
         if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
             // assuming address
             locales.addr = opt;
@@ -32,6 +33,7 @@ void arguments_parser(int argc, char **argv)
             if ((opt = argv[++i])) {
                 port = atoi(opt);
                 locales.port = (port ? port : 8080);
+                if (!port) goto recycle;
             }
         }
 

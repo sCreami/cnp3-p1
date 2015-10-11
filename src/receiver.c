@@ -25,6 +25,7 @@ void arguments_parser(int argc, char **argv)
     for (int i = 1; i < argc; i++) {
         opt = argv[i];
 
+        recycle:
         if (!strncmp(opt, "-f", 2) || !strncmp(opt, "--filename", 10)) {
             // followed by filename if presents
             opt = argv[++i];
@@ -39,6 +40,7 @@ void arguments_parser(int argc, char **argv)
             if ((opt = argv[++i])) {
                 port = atoi(opt);
                 locales.port = (port ? port : 8080);
+                if (!port) goto recycle;
             }
         }
 
