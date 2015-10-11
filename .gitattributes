@@ -1,2 +1,2 @@
-*.c filter=spabs
-*.h filter=spabs
+*.c filter=tabspace
+*.h filter=tabspace
