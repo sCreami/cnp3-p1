@@ -11,6 +11,10 @@ static struct snd_config locales = {
     .verbose  = 0,
 };
 
+
+/* Fill the local configuration following the parameters given in arguments.
+ * It reads argc and argv to fill the static structure locales with valid data.
+ */
 void arguments_parser(int argc, char **argv)
 {
     char *opt, *endptr;
