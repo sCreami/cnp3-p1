@@ -26,13 +26,7 @@ void arguments_parser(int argc, char **argv)
         opt = argv[i];
 
         recycle:
-        if (!strncmp(opt, "-f", 2) || !strncmp(opt, "--filename", 10)) {
-            // followed by filename if presents
-            opt = argv[++i];
-            locales.filename = (opt ? opt : "file.dat");
-        }
-
-        else if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
+        if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
             // assuming address
             locales.addr = opt;
 
@@ -64,11 +58,10 @@ void arguments_parser(int argc, char **argv)
 void meta_print(void)
 {
     printf("Address   : %s\n"
-           "Port      : %d\n"
-           "file      : %s\n"
-           "CPU time  : %f\n",
-           locales.addr, locales.port, locales.filename,
-           (double)(locales.stop - locales.start)/CLOCKS_PER_SEC);
+               "Port      : %d\n"
+               "CPU time  : %f\n",
+               locales.addr, locales.port,
+               (double)(locales.stop - locales.start)/CLOCKS_PER_SEC);
 }
 
 int main(int argc, char **argv)

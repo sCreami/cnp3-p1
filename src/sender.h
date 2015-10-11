@@ -8,6 +8,7 @@ struct snd_config {
     // Arguments
     char *addr;
     int   port;
+    char *filename;
     int   verbose;
 
     // CPU time

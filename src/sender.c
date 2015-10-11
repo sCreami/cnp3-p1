@@ -9,6 +9,7 @@
 static struct snd_config locales = {
     .addr     = "localhost",
     .port     = 8080,
+    .filename = "file.dat",
     .verbose  = 0,
 };
 
@@ -25,6 +26,12 @@ void arguments_parser(int argc, char **argv)
         opt = argv[i];
 
         recycle:
+        if (!strncmp(opt, "-f", 2) || !strncmp(opt, "--filename", 10)) {
+            // followed by filename if presents
+            opt = argv[++i];
+            locales.filename = (opt ? opt : "file.dat");
+        }
+
         if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
             // assuming address
             locales.addr = opt;
@@ -58,8 +65,9 @@ void meta_print(void)
 {
     printf("Address   : %s\n"
            "Port      : %d\n"
+           "file      : %s\n"
            "CPU time  : %f\n",
-           locales.addr, locales.port,
+           locales.addr, locales.port, locales.filename,
            (double)(locales.stop - locales.start)/CLOCKS_PER_SEC);
 }
 
