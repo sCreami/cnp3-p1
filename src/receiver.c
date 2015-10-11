@@ -9,6 +9,7 @@
 static struct rcv_config locales = {
     .addr     = "localhost",
     .port     = 8080,
+    .filename = "/stdout",
     .verbose  = 0,
 };
 
@@ -25,7 +26,13 @@ void arguments_parser(int argc, char **argv)
         opt = argv[i];
 
         recycle:
-        if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
+        if (!strncmp(opt, "-f", 2) || !strncmp(opt, "--filename", 10)) {
+            // followed by filename if presents
+            opt = argv[++i];
+            locales.filename = (opt ? opt : "/stdout");
+        }
+
+        else if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
             // assuming address
             locales.addr = opt;
 
@@ -57,10 +64,11 @@ void arguments_parser(int argc, char **argv)
 void meta_print(void)
 {
     printf("Address   : %s\n"
-               "Port      : %d\n"
-               "CPU time  : %f\n",
-               locales.addr, locales.port,
-               (double)(locales.stop - locales.start)/CLOCKS_PER_SEC);
+           "Port      : %d\n"
+           "File      : %s\n"
+           "CPU time  : %f\n",
+           locales.addr, locales.port, locales.filename,
+           (double)(locales.stop - locales.start)/CLOCKS_PER_SEC);
 }
 
 int main(int argc, char **argv)
