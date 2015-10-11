@@ -32,7 +32,7 @@ void arguments_parser(int argc, char **argv)
             locales.filename = (opt ? opt : "file.dat");
         }
 
-        if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
+        else if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
             // assuming address
             locales.addr = opt;
 
