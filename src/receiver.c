@@ -9,7 +9,6 @@
 static struct rcv_config locales = {
     .addr     = "localhost",
     .port     = 8080,
-    .filename = "file.dat",
     .verbose  = 0,
 };
 
