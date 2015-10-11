@@ -1,5 +1,4 @@
 CC      = gcc
-EXEC    = sender receiver
 CFLAGS  = -Wall    \
 		  -Werror  \
 		  -Wshadow \
@@ -10,10 +9,13 @@ LFLAGS  =
 SRC := $(foreach ssrc, src, $(wildcard $(ssrc)/*.c))
 OBJ := $(SRC:.c=.o)
 
-all: $(EXEC)
+all: receiver sender
 
-$(EXEC): $(OBJ)
-	$(CC) $(LFLAGS) -o $@ $(OBJ)
+receiver: src/receiver.o
+	$(CC) $(LFLAGS) $< -o $@
+
+sender: src/sender.o
+	$(CC) $(LFLAGS) $< -o $@
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -o $@ -c $<
