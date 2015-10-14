@@ -12,10 +12,10 @@ OBJ := $(SRC:.c=.o)
 all: receiver sender
 
 receiver: src/receiver.o
-	$(CC) $(LFLAGS) $< -o $@
+	$(CC) $(LFLAGS) $^ -o $@
 
-sender: src/sender.o
-	$(CC) $(LFLAGS) $< -o $@
+sender: src/sender.o src/socket.o
+	$(CC) $(LFLAGS) $^ -o $@
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -o $@ -c $<

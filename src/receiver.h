@@ -1,19 +1,12 @@
 #ifndef _RECEIVER_H
 #define _RECEIVER_H
 
-// Saves the local configuration for
-// the current instance.
-struct rcv_config {
+#include <stdio.h>
+#include <stdlib.h>
+#include <arpa/inet.h> /* inet_pton */
+#include <string.h>
+#include <time.h>
 
-    // Arguments
-    char *addr;
-    int   port;
-    char *filename;
-    int   verbose;
-
-    // CPU time
-    clock_t start;
-    clock_t stop;
-};
+#include "locales_rcv.h"
 
 #endif /* _RECEIVER_H */

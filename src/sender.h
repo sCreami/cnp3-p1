@@ -1,19 +1,13 @@
 #ifndef _SENDER_H
 #define _SENDER_H
 
-// Saves the local configuration for
-// the current instance.
-struct snd_config {
-    
-    // Arguments
-    char *addr;
-    int   port;
-    char *filename;
-    int   verbose;
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
-    // CPU time
-    clock_t start;
-    clock_t stop;
-};
+#include "locales_snd.h"
+#include "socket.h"
 
 #endif /* _SENDER_H */

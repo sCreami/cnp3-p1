@@ -1,18 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <arpa/inet.h> /* inet_pton */
-#include <string.h>
-#include <time.h>
-
 #include "receiver.h"
-
-static struct rcv_config locales = {
-    .addr     = "localhost",
-    .port     = 8080,
-    .filename = "/stdout",
-    .verbose  = 0,
-};
-
 
 /* Fill the local configuration following the parameters given in arguments.
  * It reads argc and argv to fill the static structure locales with valid data.

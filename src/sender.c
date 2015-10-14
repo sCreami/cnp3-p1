@@ -1,18 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <arpa/inet.h> /* inet_pton */
-#include <string.h>
-#include <time.h>
-
 #include "sender.h"
-
-static struct snd_config locales = {
-    .addr     = "localhost",
-    .port     = 8080,
-    .filename = "/stdin",
-    .verbose  = 0,
-};
-
 
 /* Fill the local configuration following the parameters given in arguments.
  * It reads argc and argv to fill the static structure locales with valid data.
@@ -71,19 +57,34 @@ void meta_print(void)
            (double)(locales.stop - locales.start)/CLOCKS_PER_SEC);
 }
 
+int create_connection(void)
+{
+    int sockfd;
+
+    sockfd = connect_socket();
+    if (sockfd == -1)
+        return -1;
+
+    return 1;
+}
+
+extern void clean_behind();
+
 int main(int argc, char **argv)
 {
+    int ok = 1; // starting okay
+
     if (locales.verbose)
         locales.start = clock();
 
-
     arguments_parser(argc, argv);
 
+    ok = create_connection();
 
     if (locales.verbose) {
         locales.stop = clock();
         meta_print();
     }
 
-    return EXIT_SUCCESS;
+    return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }
