@@ -1,6 +1,11 @@
-/* Fill the local configuration following the parameters given in arguments.
- * It reads argc and argv to fill the static structure locales with valid data.
+/*
+ * THIS FILE IS A TEMPLATE INCLUDED IN SENDER.C
+ * AND RECEIVER.C TO AVOID REDUNDANCY. DO NOT
+ * DEFINE ANY MACRO IN THIS FILE !
  */
+
+/* Fill the local configuration following the parameters given in arguments.
+ * It reads argc and argv to fill the static structure locales with valid data. */
 void arguments_parser(int argc, char **argv)
 {
     char *opt, *endptr;
