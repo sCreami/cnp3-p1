@@ -11,7 +11,7 @@ OBJ := $(SRC:.c=.o)
 
 all: receiver sender
 
-receiver: src/receiver.o
+receiver: src/receiver.o src/socket.o
 	$(CC) $(LFLAGS) $^ -o $@
 
 sender: src/sender.o src/socket.o

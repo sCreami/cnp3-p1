@@ -1,8 +1,8 @@
 #ifndef _LOCALES_H
 #define _LOCALES_H
 
-// Saves the local configuration for
-// the current instance.
+/* Saves the local configuration for
+ * the current instance. */
 struct config {
     
     // Arguments
@@ -11,20 +11,10 @@ struct config {
     char *filename;
     int   verbose;
 
-    // CPU time
-    clock_t start;
-    clock_t stop;
-
     // Socket
     int sockfd;
 };
 
-// Global locales
-static struct config locales = {
-    .addr     = "localhost",
-    .port     = 8080,
-    .filename = NULL,
-    .verbose  = 0,
-};
+extern struct config locales;
 
 #endif /* _LOCALES_H */

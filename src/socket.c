@@ -1,3 +1,5 @@
+/* socket.c */
+
 #include "socket.h"
 
 int real_address(const char *address, struct sockaddr_in6 *rval)
@@ -17,7 +19,8 @@ int real_address(const char *address, struct sockaddr_in6 *rval)
     status = getaddrinfo(address, NULL, &hints, &res);
 
     if (status) {
-        perror(gai_strerror(status));
+        if (locales.verbose)
+            fprintf(stderr, "%s\n", gai_strerror(status));
         return 1;
     }
 
@@ -35,19 +38,12 @@ int connect_socket(void)
 
     sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
 
-    // for debug purpose
+    // stored in locales for facility
     locales.sockfd = sockfd;
 
     if (sockfd == -1) {
         perror("socket");
-        return -1;
-    }
-
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,
-                   (void *) &tv, sizeof(struct timeval)) == -1) {
-        perror("setsockopt");
-        close(sockfd);
-        return -1;
+        return 0;
     }
 
     tv = (struct timeval) {
@@ -55,13 +51,20 @@ int connect_socket(void)
         .tv_usec = 0,
     };
 
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,
+                   (void *) &tv, sizeof(struct timeval)) == -1) {
+        perror("setsockopt");
+        close(sockfd);
+        return 0;
+    }
+
     // ensure cleaniness
     bzero(&addr, sizeof(struct sockaddr_in6));
 
     if (real_address(locales.addr, &addr)) {
         perror("real_address");
         close(sockfd);
-        return -1;
+        return 0;
     }
 
     addr.sin6_port = htons(locales.port);
@@ -70,7 +73,7 @@ int connect_socket(void)
                 sizeof(struct sockaddr_in6)) == -1) {
         perror("connect");
         close(sockfd);
-        return -1;
+        return 0;
     }
 
     return sockfd;

@@ -3,10 +3,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <arpa/inet.h> /* inet_pton */
 #include <string.h>
-#include <time.h>
+#include <unistd.h>
 
 #include "locales.h"
+#include "socket.h"
 
 #endif /* _RECEIVER_H */

@@ -8,8 +8,8 @@
  * */
 
 #ifndef __APPLE__
-	#warning "This header file (endian.h) is MacOS X specific.\n"
-#endif	/* __APPLE__ */
+    #warning "This header file (endian.h) is MacOS X specific.\n"
+#endif  /* __APPLE__ */
 
 
 #include <libkern/OSByteOrder.h>
@@ -30,4 +30,4 @@
 #define le64toh(x) OSSwapLittleToHostInt64(x)
 
 
-#endif	/* __FINK_ENDIANDEV_PKG_ENDIAN_H__ */
+#endif  /* __FINK_ENDIANDEV_PKG_ENDIAN_H__ */
