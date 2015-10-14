@@ -8,9 +8,8 @@
 
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
 
-/* This structure will store the shared
- * parameters of all functions. Its definition
- * can be found in locales.h */
+/* This structure will store the shared parameters of all functions. Its
+ * definition can be found in locales.h */
 struct config locales = {
     .addr     = "localhost",
     .port     = 8080,
@@ -18,9 +17,9 @@ struct config locales = {
     .verbose  = 0,
 };
 
-/* In verbose mode, it prints the meta datas contained inside locales like
- * the address, the port, ... */
-void meta_print(void)
+/* In verbose mode, it prints the meta datas contained inside locales like the
+ * address, the port, the filename, or the open socket ... */
+void print_locales(void)
 {
     printf("Address   : %s\n"
            "Port      : %d\n"
@@ -39,7 +38,7 @@ int main(int argc, char **argv)
     ok = connect_socket();
 
     if (locales.verbose)
-        meta_print();
+        print_locales();
 
     return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }
