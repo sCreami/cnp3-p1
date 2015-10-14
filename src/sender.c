@@ -1,6 +1,11 @@
-/* sender.c */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include "sender.h"
+#include "locales.h"
+#include "socket.h"
+
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
 
 /* This structure will store the shared
