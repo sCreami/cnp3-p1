@@ -1,5 +1,5 @@
-#ifndef _LOCALES_SND_H
-#define _LOCALES_SND_H
+#ifndef _LOCALES_H
+#define _LOCALES_H
 
 // Saves the local configuration for
 // the current instance.
@@ -23,8 +23,8 @@ struct config {
 static struct config locales = {
     .addr     = "localhost",
     .port     = 8080,
-    .filename = "/stdin",
+    .filename = NULL,
     .verbose  = 0,
 };
 
-#endif /* _LOCALES_SND_H */
+#endif /* _LOCALES_H */

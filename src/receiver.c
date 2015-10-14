@@ -14,8 +14,7 @@ void arguments_parser(int argc, char **argv)
         recycle:
         if (!strncmp(opt, "-f", 2) || !strncmp(opt, "--filename", 10)) {
             // followed by filename if presents
-            opt = argv[++i];
-            locales.filename = (opt ? opt : "/stdout");
+            locales.filename = argv[++i];
         }
 
         else if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
@@ -53,7 +52,8 @@ void meta_print(void)
            "Port      : %d\n"
            "File      : %s\n"
            "CPU time  : %f\n",
-           locales.addr, locales.port, locales.filename,
+           locales.addr, locales.port,
+           (locales.filename ? locales.filename : "stdout"),
            (double)(locales.stop - locales.start)/CLOCKS_PER_SEC);
 }
 

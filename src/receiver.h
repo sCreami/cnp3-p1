@@ -7,6 +7,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "locales_rcv.h"
+#include "locales.h"
 
 #endif /* _RECEIVER_H */

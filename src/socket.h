@@ -18,7 +18,7 @@
     #include "osdep/endian.h"
 #endif
 
-#include "locales_snd.h"
+#include "locales.h"
 
 int connect_socket(void);
 

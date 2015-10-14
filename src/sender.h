@@ -7,7 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "locales_snd.h"
+#include "locales.h"
 #include "socket.h"
 
 #endif /* _SENDER_H */
