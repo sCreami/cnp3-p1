@@ -11,9 +11,14 @@
 /* This structure will store the shared
  * parameters of all functions. Its definition
  * can be found in locales.h */
-struct config locales;
+struct config locales = {
+    .addr     = "localhost",
+    .port     = 8080,
+    .filename = NULL,
+    .verbose  = 0,
+};
 
-/* In verbose mode, it prints the meta data contained inside locales like
+/* In verbose mode, it prints the meta datas contained inside locales like
  * the address, the port, ... */
 void meta_print(void)
 {
@@ -28,14 +33,6 @@ void meta_print(void)
 int main(int argc, char **argv)
 {
     int ok = 1; // starting okay
-
-    // init config
-    locales = (struct config) {
-        .addr     = "localhost",
-        .port     = 8080,
-        .filename = NULL,
-        .verbose  = 0,
-    };
 
     arguments_parser(argc, argv);
 
