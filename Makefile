@@ -1,9 +1,9 @@
 CC      = gcc
-CFLAGS  = -Wall    \
-          -Werror  \
-          -Wshadow \
-          -Wextra  \
-          -std=c99 \
+CFLAGS  = -Wall      \
+          -Werror    \
+          -Wshadow   \
+          -Wextra    \
+          -std=gnu99 \
           -g
 LFLAGS  = #-lz
 
@@ -19,7 +19,7 @@ sender: src/sender.o src/socket.o
 	$(CC) $(LFLAGS) $^ -o $@
 
 %.o: %.c %.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(CFLAGS) -c $< -o $@ 
 
 clean:
 	rm -f $(OBJ)
