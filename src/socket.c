@@ -7,7 +7,7 @@ int real_address(const char *address, struct sockaddr_in6 *rval)
     struct addrinfo hints, *res, *p;
     int status;
 
-    bzero(&hints, sizeof(struct addrinfo));
+    bzero(&hints, sizeof(hints));
 
     hints = (struct addrinfo) {
         .ai_family    = AF_INET6,
@@ -25,7 +25,7 @@ int real_address(const char *address, struct sockaddr_in6 *rval)
     }
 
     for (p = res; p != NULL; p = p->ai_next)
-        memcpy(rval, p->ai_addr, sizeof(struct sockaddr_in6));
+        memcpy(rval, p->ai_addr, sizeof(*rval));
 
     return 0;
 }
@@ -34,6 +34,7 @@ int connect_socket(void)
 {
     int sockfd;
     struct timeval tv;
+    socklen_t addr_len;
     struct sockaddr_in6 addr;
 
     sockfd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -52,14 +53,14 @@ int connect_socket(void)
     };
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,
-                   (void *) &tv, sizeof(struct timeval)) == -1) {
+                   (void *) &tv, sizeof(tv)) == -1) {
         perror("setsockopt");
         close(sockfd);
         return 0;
     }
 
     // ensure cleaniness
-    bzero(&addr, sizeof(struct sockaddr_in6));
+    bzero(&addr, sizeof(addr));
 
     if (real_address(locales.addr, &addr)) {
         perror("real_address");
@@ -69,8 +70,26 @@ int connect_socket(void)
 
     addr.sin6_port = htons(locales.port);
 
-    if (connect(sockfd, (struct sockaddr *) &addr,
-                sizeof(struct sockaddr_in6)) == -1) {
+    if (locales.passive) {
+        if (bind(sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
+            perror("bind");
+            close(sockfd);
+            return 0;
+        }
+
+        addr_len = sizeof(addr);
+
+        // filling the same structure as bind may leads
+        // to bugs. I'm not sure, let's discover !
+        if (recvfrom(sockfd, NULL, 0, MSG_PEEK,
+                     (struct sockaddr *) &addr, &addr_len) == -1) {
+            perror("recvfrom");
+            close(sockfd);
+            return 0;
+        }
+    }
+
+    if (connect(sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
         perror("connect");
         close(sockfd);
         return 0;

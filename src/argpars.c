@@ -24,7 +24,7 @@ void arguments_parser(int argc, char **argv)
 
             if (locales.idef && !strcmp(opt, "::")) {
                 // listen to all interfaces
-                locales.addr = opt;
+                locales.addr = "::1";
                 locales.passive = 1;
             }
 
