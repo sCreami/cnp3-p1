@@ -324,7 +324,7 @@ void buffer_print(char * buffer, int length)
 
 /*MAIN*/
 
-int main()
+/*int main()
 {
     pkt_t * pkt = pkt_build(PTYPE_DATA, 17, 42, "12345");
 
@@ -364,4 +364,4 @@ int main()
     pkt_print(new_pkt);
 
     return EXIT_SUCCESS;
-}
+}*/
