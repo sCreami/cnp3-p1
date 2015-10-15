@@ -48,7 +48,7 @@ int connect_socket(void)
     }
 
     tv = (struct timeval) {
-        .tv_sec  = 2,
+        .tv_sec  = 30,
         .tv_usec = 0,
     };
 
