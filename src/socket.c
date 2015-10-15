@@ -79,6 +79,9 @@ int connect_socket(void)
 
         addr_len = sizeof(addr);
 
+        if (locales.verbose)
+            fprintf(stderr, KRED"[socket]"KNRM" Waiting for sender\n");
+
         // filling the same structure as bind may leads
         // to bugs. I'm not sure, let's discover !
         if (recvfrom(sockfd, NULL, 1, MSG_PEEK,
@@ -94,6 +97,9 @@ int connect_socket(void)
         close(sockfd);
         return 0;
     }
+
+    if (locales.verbose)
+        fprintf(stderr, KRED"[socket]"KNRM" Connected\n");
 
     return sockfd;
 }

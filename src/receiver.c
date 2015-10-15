@@ -23,14 +23,15 @@ struct config locales = {
  * address, the port, the filename, or the open socket ... */
 void print_locales(void)
 {
-    printf("Address   : %s\n"
-           "Port      : %d\n"
-           "File      : %s\n"
-           "Socket    : %d\n"
-           "Passive   : %d\n",
+    printf(KCYN "---- args ----    \n"
+           KCYN "Address "KNRM": %s\n"
+           KCYN "Port    "KNRM": %d\n"
+           KCYN "File    "KNRM": %s\n"
+           KCYN "Passive "KNRM": %d\n"
+           KCYN "--------------    \n",
            locales.addr, locales.port,
            (locales.filename ? locales.filename : "stdout"),
-           locales.sockfd, locales.passive);
+           locales.passive);
 }
 
 int main(int argc, char **argv)
@@ -39,10 +40,10 @@ int main(int argc, char **argv)
 
     arguments_parser(argc, argv);
 
-    ok = connect_socket();
-
     if (locales.verbose)
         print_locales();
+
+    ok = connect_socket();
 
     return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }
