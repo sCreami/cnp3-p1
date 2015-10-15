@@ -21,6 +21,21 @@
 #define STX 0b00000010
 #define ETX 0b00000011
 
+struct __attribute__((__packed__)) pkt
+{
+    /*header*/
+
+    uint8_t  window  : 5;
+    ptypes_t type    : 3;
+    uint8_t  seqnum  : 8;
+    uint16_t length  : 16;
+
+    /*content*/
+
+    char *   payload;
+    uint32_t crc;
+};
+
 in_port_t get_port(char * s)
 {
     in_port_t port = 0;
@@ -61,6 +76,31 @@ bool read_data(int fd, char * buf, size_t * len)
     return read_status > 0;
 }
 
+pkt_t * decode_data(char *buf, size_t *len)
+{
+    char * next_pkt = find_next_pkt(buf, *len);
+    pkt_t * result = (pkt_t *)malloc(sizeof(pkt_t));
+
+    if (!result || !next_pkt)
+        return NULL;
+
+    *len = buf + *len - next_pkt;
+    memcpy(buf, next_pkt, *len);
+
+    int decode_status = pkt_decode(buf + 2, *len - 3, result);
+
+    if (decode_status != PKT_OK)
+    {
+        //do something appropriate
+        free(result);
+        return NULL;
+    }
+    else
+    {
+        return result;
+    }
+}
+
 int main(int argc, char * argv[])
 {
     char * address = "::";
@@ -87,13 +127,13 @@ int main(int argc, char * argv[])
         return EXIT_FAILURE;
     }
 
-    int socket_fd = create_socket(NULL, -1, &addr, port);
+    int socket_fd = fileno(stdin);/*create_socket(NULL, -1, &addr, port);
 
     if (socket_fd == -1)
     {
         fprintf(stderr, ">> couldn't create socket\n");
         return EXIT_FAILURE;
-    }
+    }*/
 
     int out_fd;
     if (filename)
@@ -108,12 +148,15 @@ int main(int argc, char * argv[])
         .tv_usec = 0,
     };
 
+    char buffer[2048];
+    size_t buffer_length = 2048;
+
     while (true)
     {
         FD_ZERO(&fds);
         FD_SET(socket_fd, &fds);
 
-        if (select(FD_SETSIZE, &fds, NULL, NULL, &tv) > 0)
+        if (select(FD_SETSIZE, &fds, NULL, NULL, &tv) < 0)
         {
             fprintf(stderr, ">> met error executing 'select'\n");
             return EXIT_FAILURE;
@@ -121,9 +164,21 @@ int main(int argc, char * argv[])
 
         if (FD_ISSET(socket_fd, &fds))
         {
-            //get and write incoming data
+            if (read_data(socket_fd, buffer, &buffer_length))
+            {
+                pkt_t * pkt = decode_data(buffer, &buffer_length);
+                write(out_fd, pkt->payload, pkt->length);
+            }
+            else
+            {
+                return EXIT_FAILURE;
+            }
         }
     }
+
+    if (filename)
+        close(out_fd);
+    close(socket_fd);
 
     return EXIT_SUCCESS;
 }
