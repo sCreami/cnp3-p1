@@ -5,6 +5,9 @@
  * the current instance. */
 struct config {
     
+    // ID
+    int idef; /* identify recv or snd */
+
     // Arguments
     char *addr;
     int   port;
@@ -13,6 +16,7 @@ struct config {
 
     // Socket
     int sockfd;
+    int passive; /* connect or bind */
 };
 
 extern struct config locales;

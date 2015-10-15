@@ -11,10 +11,12 @@
 /* This structure will store the shared parameters of all functions. Its
  * definition can be found in locales.h */
 struct config locales = {
+    .idef     = 1,
     .addr     = "localhost",
     .port     = 8080,
     .filename = NULL,
     .verbose  = 0,
+    .passive  = 0,
 };
 
 /* In verbose mode, it prints the meta datas contained inside locales like the
@@ -24,9 +26,11 @@ void print_locales(void)
     printf("Address   : %s\n"
            "Port      : %d\n"
            "File      : %s\n"
-           "Socket    : %d\n",
+           "Socket    : %d\n"
+           "Passive   : %d\n",
            locales.addr, locales.port,
-           (locales.filename ? locales.filename : "stdout"), locales.sockfd);
+           (locales.filename ? locales.filename : "stdout"),
+           locales.sockfd, locales.passive);
 }
 
 int main(int argc, char **argv)

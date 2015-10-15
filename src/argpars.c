@@ -15,14 +15,23 @@ void arguments_parser(int argc, char **argv)
         opt = argv[i];
 
         recycle:
-        if (!strncmp(opt, "-f", 2) || !strncmp(opt, "--filename", 10)) {
+        if (!strcmp(opt, "-f") || !strcmp(opt, "--filename")) {
             // followed by filename if presents
             locales.filename = argv[++i];
         }
 
-        else if (strstr(opt, ":") || !strncmp(opt, "localhost", 9)) {
-            // assuming address
-            locales.addr = opt;
+        else if (strstr(opt, ":") || !strcmp(opt, "localhost")) {
+
+            if (locales.idef && !strcmp(opt, "::")) {
+                // listen to all interfaces
+                locales.addr = opt;
+                locales.passive = 1;
+            }
+
+            else {
+                // assuming address
+                locales.addr = opt;
+            }
 
             // followed by port if presents
             if ((opt = argv[++i])) {
@@ -32,7 +41,7 @@ void arguments_parser(int argc, char **argv)
             }
         }
 
-        else if (!strncmp(opt, "-v", 2) || !strncmp(opt, "--verbose", 9)) {
+        else if (!strcmp(opt, "-v") || !strcmp(opt, "--verbose")) {
             // define verbosity
             locales.verbose = 1;
         }
