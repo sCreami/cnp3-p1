@@ -81,7 +81,7 @@ int connect_socket(void)
 
         // filling the same structure as bind may leads
         // to bugs. I'm not sure, let's discover !
-        if (recvfrom(sockfd, NULL, 0, MSG_PEEK,
+        if (recvfrom(sockfd, NULL, 1, MSG_PEEK,
                      (struct sockaddr *) &addr, &addr_len) == -1) {
             perror("recvfrom");
             close(sockfd);
