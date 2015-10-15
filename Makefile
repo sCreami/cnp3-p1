@@ -3,6 +3,7 @@ CFLAGS  = -Wall    \
           -Werror  \
           -Wshadow \
           -Wextra  \
+          -std=c99 \
           -g
 LFLAGS  = #-lz
 
