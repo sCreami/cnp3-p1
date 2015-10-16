@@ -16,7 +16,7 @@
  * definition can be found in locales.h */
 struct config locales = {
     .idef     = 0,
-    .addr     = "localhost",
+    .addr     = "::1",
     .port     = 8080,
     .filename = NULL,
     .verbose  = 0,
@@ -31,7 +31,7 @@ void print_locales(void)
            KCYN "Address "KNRM": %s\n"
            KCYN "Port    "KNRM": %d\n"
            KCYN "File    "KNRM": %s\n"
-           KCYN "--------------    \n",
+           KCYN "--------------    \n" KNRM,
            locales.addr, locales.port,
            (locales.filename ? locales.filename : "stdin"));
 }
