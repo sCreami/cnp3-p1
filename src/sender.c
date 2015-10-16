@@ -55,7 +55,7 @@ int perform_transfer(void)
     if (locales.verbose)
         fprintf(stderr, KGRN"[transf]"KNRM" Performing\n");
 
-    while ((read_size = read(ofd, buffer, sizeof(buffer))))
+    while ((read_size = read(ofd, buffer, 512)))
     {
         if (read_size < 0) {
             perror("read");
@@ -89,7 +89,9 @@ int perform_transfer(void)
         pkt_del(pkt);
     }
 
-    close(ofd);
+    if (locales.filename)
+        close(ofd);
+
     close(locales.sockfd);
     return 1;
 }
