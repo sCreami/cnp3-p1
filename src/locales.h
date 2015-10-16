@@ -14,7 +14,7 @@
 /* Saves the local configuration for
  * the current instance. */
 struct config {
-    
+
     // ID
     int idef; /* identify recv or snd */
 
@@ -27,6 +27,14 @@ struct config {
     // Socket
     int sockfd;
     int passive; /* connect or bind */
+
+    // Protocol
+    int window;
+    int seqnum;
+
+    // File
+    int in_fd;
+    int out_fd;
 };
 
 extern struct config locales;
