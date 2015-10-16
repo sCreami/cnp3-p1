@@ -32,6 +32,7 @@ int real_address(const char *address, struct sockaddr_in6 *rval)
 
 int connect_socket(void)
 {
+    char dull;
     int sockfd;
     struct timeval tv;
     socklen_t addr_len;
@@ -84,7 +85,7 @@ int connect_socket(void)
 
         // filling the same structure as bind may leads
         // to bugs. I'm not sure, let's discover !
-        if (recvfrom(sockfd, NULL, 1, MSG_PEEK,
+        if (recvfrom(sockfd, &dull, 1, MSG_PEEK,
                      (struct sockaddr *) &addr, &addr_len) == -1) {
             perror("recvfrom");
             close(sockfd);
