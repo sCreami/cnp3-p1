@@ -71,7 +71,11 @@ int connect_socket(void)
 
     addr.sin6_port = htons(locales.port);
 
-    if (locales.passive) {
+    if (locales.idef) {
+
+        if (locales.passive)
+            addr.sin6_addr = in6addr_any;
+
         if (bind(sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
             perror("bind");
             close(sockfd);
@@ -83,8 +87,6 @@ int connect_socket(void)
         if (locales.verbose)
             fprintf(stderr, KRED"[socket]"KNRM" Waiting for sender\n");
 
-        // filling the same structure as bind may leads
-        // to bugs. I'm not sure, let's discover !
         if (recvfrom(sockfd, &dull, 1, MSG_PEEK,
                      (struct sockaddr *) &addr, &addr_len) == -1) {
             perror("recvfrom");
