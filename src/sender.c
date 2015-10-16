@@ -87,12 +87,16 @@ int perform_transfer(void)
         }
 
         pkt_del(pkt);
+
+        if (locales.filename && read_size < 512) {
+            close(ofd);
+            return 1;
+        }
     }
 
     if (locales.filename)
         close(ofd);
 
-    close(locales.sockfd);
     return 1;
 }
 
@@ -111,6 +115,8 @@ int main(int argc, char **argv)
 
     if (ok)
         ok = perform_transfer();
+
+    close(locales.sockfd);
 
     return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }

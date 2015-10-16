@@ -86,8 +86,9 @@ int receive_data(void)
         pkt_del(pkt);
     }
 
-    close(ofd);
-    close(locales.sockfd);
+    if (locales.filename)
+        close(ofd);
+
     return 1;
 }
 
