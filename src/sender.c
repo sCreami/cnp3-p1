@@ -11,6 +11,7 @@
 #include "socket.h"
 
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
+#include "packet.h" /*packet related functions and structures*/
 
 /* This structure will store the shared parameters of all functions. Its
  * definition can be found in locales.h */
@@ -36,9 +37,13 @@ void print_locales(void)
            (locales.filename ? locales.filename : "stdin"));
 }
 
+#define LENGTH 4 + 512 + 4
+
 int perform_transfer(void)
 {
-    int ofd;
+    pkt_t *pkt;
+    int ofd, read_size;
+    char buffer[LENGTH];
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
 
@@ -50,11 +55,46 @@ int perform_transfer(void)
     if (locales.verbose)
         fprintf(stderr, KGRN"[transf]"KNRM" Performing\n");
 
-    //packet
+    while ((read_size = read(ofd, buffer, sizeof(buffer))))
+    {
+        if (read_size < 0) {
+            perror("read");
+            close(ofd);
+            return 0;
+        }
 
+        pkt = pkt_build(PTYPE_DATA, locales.window, locales.seqnum,
+                        read_size, buffer);
+
+        if (!pkt) {
+            perror("pkt_build");
+            close(ofd);
+            return 0;
+        }
+
+        if (pkt_encode(pkt, buffer, (size_t *)&read_size) != PKT_OK) {
+            perror("pkt_encode");
+            pkt_del(pkt);
+            close(ofd);
+            return 0;
+        }
+
+        if (write(locales.sockfd, buffer, read_size) == -1) {
+            perror("write");
+            pkt_del(pkt);
+            close(ofd);
+            return 0;
+        }
+
+        pkt_del(pkt);
+    }
+
+    close(ofd);
+    close(locales.sockfd);
     return 1;
-
 }
+
+#undef LENGTH
 
 int main(int argc, char **argv)
 {
