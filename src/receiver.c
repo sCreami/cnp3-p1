@@ -108,5 +108,7 @@ int main(int argc, char **argv)
     if (ok)
         ok = receive_data();
 
+    close(locales.sockfd);
+
     return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }
