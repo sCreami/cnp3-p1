@@ -18,7 +18,7 @@ struct config locales = {
     .filename = NULL,
     .verbose  = 0,
     .passive  = 0,
-    .window = 0,
+    .window = 31,
     .seqnum = 0,
 };
 
@@ -37,6 +37,35 @@ void print_locales(void)
                     locales.passive);
 }
 
+pkt_t * withdraw_pkt(pkt_t *buffer[32], int i)
+{
+    if (buffer[i] == NULL)
+        return NULL; // and print something ?
+
+    pkt_t * result = buffer[i];
+    locales.window++;
+    buffer[i] = NULL;
+    return result;
+}
+
+int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
+{
+    int seqnum_diff;
+
+    seqnum_diff = pkt->seqnum - locales.seqnum;
+
+    if (seqnum_diff < 0 || seqnum_diff > 31)
+        return 1;
+
+    if (buffer[seqnum_diff] != NULL)
+        return 1;
+
+    locales.window--;
+    buffer[seqnum_diff] = pkt;
+
+    return 0;
+}
+
 #define LENGTH 4 + 512 + 4
 
 int receive_data(void)
@@ -44,6 +73,8 @@ int receive_data(void)
     pkt_t *pkt;
     int ofd, read_size;
     char buffer[LENGTH];
+    //pkt_t *reception_window[32]; /*unused variable*/
+    pkt_status_code decode_status;
 
     ofd = (locales.filename ? open(locales.filename, O_WRONLY | O_CREAT |
            O_TRUNC, 0644) : fileno(stdout));
@@ -67,7 +98,9 @@ int receive_data(void)
             return 0;
         }
 
-        if (pkt_decode(buffer, (size_t) read_size, pkt) != PKT_OK) {
+        decode_status = pkt_decode(buffer, (size_t) read_size, pkt);
+
+        if (decode_status != PKT_OK) {
             perror("pkt_decode");
             pkt_del(pkt);
             close(ofd);
