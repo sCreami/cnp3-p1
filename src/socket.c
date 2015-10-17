@@ -100,7 +100,7 @@ int connect_socket(void)
         sin6_len = sizeof(addr.sin6_addr);
 
         if (locales.verbose)
-            fprintf(stderr, KRED"[socket]"KNRM" Waiting for sender\n");
+            fprintf(stderr, "["KBLU" info "KNRM"] Waiting for sender\n");
 
         match = 0;
         while (!match)
@@ -126,7 +126,7 @@ int connect_socket(void)
     }
 
     if (locales.verbose)
-        fprintf(stderr, KRED"[socket]"KNRM" Connected\n");
+        fprintf(stderr, "["KGRN"  ok  "KNRM"] Connected\n");
 
     return sockfd;
 }

@@ -52,16 +52,11 @@ int receive_data(void)
     }
 
     if (locales.verbose)
-        fprintf(stderr, KGRN"[transf]"KNRM" Performing\n");
+        fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
-    while ((read_size = read(locales.sockfd, buffer, sizeof(buffer))))
+    while ((read_size  = recv(locales.sockfd, buffer, 
+                              sizeof(buffer), MSG_DONTWAIT)) != -1 )
     {
-        if (read_size < 0) {
-            perror("read");
-            close(ofd);
-            return 0;
-        }
-
         pkt = pkt_new();
 
         if (!pkt) {
@@ -70,7 +65,7 @@ int receive_data(void)
             return 0;
         }
 
-        if (pkt_decode(buffer, (size_t)read_size, pkt) != PKT_OK) {
+        if (pkt_decode(buffer, (size_t) read_size, pkt) != PKT_OK) {
             perror("pkt_decode");
             pkt_del(pkt);
             close(ofd);
@@ -87,8 +82,22 @@ int receive_data(void)
         pkt_del(pkt);
     }
 
+    if (errno != EAGAIN) { // recv return -1 when the socket dies
+        perror("recv");
+        close(ofd);
+        return 0;
+    }
+
+    if (locales.verbose)
+        fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
+
     if (locales.filename)
         close(ofd);
+
+    if (shutdown(locales.sockfd, SHUT_RD) == -1) {
+        perror("shutdown");
+        return 0;
+    }
 
     return 1;
 }
@@ -110,6 +119,9 @@ int main(int argc, char **argv)
         ok = receive_data();
 
     close(locales.sockfd);
+
+    if (locales.verbose)
+        fprintf(stderr, "["KBLU" info "KNRM"] All done\n");
 
     return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }

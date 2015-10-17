@@ -54,7 +54,7 @@ int perform_transfer(void)
     }
 
     if (locales.verbose)
-        fprintf(stderr, KGRN"[transf]"KNRM" Performing\n");
+        fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
     while ((read_size = read(ofd, buffer, 512)))
     {
@@ -81,8 +81,8 @@ int perform_transfer(void)
             return 0;
         }
 
-        if (write(locales.sockfd, buffer, length) == -1) {
-            perror("write");
+        if (send(locales.sockfd, buffer, length, 0) == -1) {
+            perror("send");
             pkt_del(pkt);
             close(ofd);
             return 0;
@@ -91,8 +91,16 @@ int perform_transfer(void)
         pkt_del(pkt);
     }
 
+    if (locales.verbose)
+        fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
+
     if (locales.filename)
         close(ofd);
+
+    if (shutdown(locales.sockfd, SHUT_WR) == -1) {
+        perror("shutdown");
+        return 0;
+    }
 
     return 1;
 }
@@ -114,6 +122,9 @@ int main(int argc, char **argv)
         ok = perform_transfer();
 
     close(locales.sockfd);
+
+    if (locales.verbose)
+        fprintf(stderr, "["KBLU" info "KNRM"] All done\n");
 
     return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }
