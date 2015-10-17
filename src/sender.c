@@ -28,13 +28,13 @@ struct config locales = {
  * address, the port, the filename, or the open socket ... */
 void print_locales(void)
 {
-    printf(KCYN "---- args ----    \n"
-           KCYN "Address "KNRM": %s\n"
-           KCYN "Port    "KNRM": %d\n"
-           KCYN "File    "KNRM": %s\n"
-           KCYN "--------------    \n" KNRM,
-           locales.addr, locales.port,
-           (locales.filename ? locales.filename : "stdin"));
+    fprintf(stderr, KCYN "---- args ----    \n"
+                    KCYN "Address "KNRM": %s\n"
+                    KCYN "Port    "KNRM": %d\n"
+                    KCYN "File    "KNRM": %s\n"
+                    KCYN "--------------    \n" KNRM,
+                    locales.addr, locales.port,
+                    (locales.filename ? locales.filename : "stdin"));
 }
 
 #define LENGTH 4 + 512 + 4
