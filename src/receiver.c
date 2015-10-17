@@ -66,6 +66,41 @@ int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
     return 0;
 }
 
+int write_in_seq_pkt(int fd, pkt_t *buffer[32])
+{
+    pkt_t *pkt;
+    int i;
+
+    for (i = 0; i < 32; i++)
+    {
+        pkt = withdraw_pkt(buffer, i);
+
+        if (!pkt) //end of in_seq pkt
+            break;
+
+        if (write(fd, pkt->payload, pkt->length) == -1) {
+            perror("write");
+            pkt_del(pkt);
+            return 1;
+        }
+
+        pkt_del(pkt);
+    }
+
+    /*
+     * if more than 1 pkt has been sent, then content of the buffer is moved to
+     * the left.
+     */
+
+    if (locales.window < 31)
+    {
+        memcpy(buffer, &buffer[i], 32 - i);
+        memset(&buffer[i], 0, i);
+    }
+
+    return 0;
+}
+
 #define LENGTH 4 + 512 + 4
 
 int receive_data(void)
@@ -73,11 +108,12 @@ int receive_data(void)
     pkt_t *pkt;
     int ofd, read_size;
     char buffer[LENGTH];
-    //pkt_t *reception_window[32]; /*unused variable*/
+    pkt_t *reception_window[32];
     pkt_status_code decode_status;
 
     ofd = (locales.filename ? open(locales.filename, O_WRONLY | O_CREAT |
            O_TRUNC, 0644) : fileno(stdout));
+    bzero(reception_window, 32 * sizeof(pkt_t *));
 
     if (ofd == -1) {
         perror("open");
@@ -100,21 +136,26 @@ int receive_data(void)
 
         decode_status = pkt_decode(buffer, (size_t) read_size, pkt);
 
-        if (decode_status != PKT_OK) {
-            perror("pkt_decode");
-            pkt_del(pkt);
-            close(ofd);
-            return 0;
-        }
+        if (decode_status == PKT_OK)
+        {
+            if (store_pkt(reception_window, pkt)) {
+                perror("store_pkt");
+                close(ofd);
+                return 0;
+            }
 
-        if (write(ofd, pkt->payload, pkt->length) == -1) {
-            perror("write");
-            pkt_del(pkt);
-            close(ofd);
-            return 0;
-        }
+            if (write_in_seq_pkt(ofd, reception_window)) {
+                perror("write_in_seq_pkt");
+                close(ofd);
+                return 0;
+            }
 
-        pkt_del(pkt);
+            //send ack
+        }
+        else
+        {
+            //send nack
+        }
     }
 
     if (errno != EAGAIN) { // recv return -1 when the socket dies
