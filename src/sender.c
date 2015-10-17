@@ -22,6 +22,8 @@ struct config locales = {
     .filename = NULL,
     .verbose  = 0,
     .passive  = 0,
+    .window = 0,
+    .seqnum = 0,
 };
 
 /* In verbose mode, it prints the meta datas contained inside locales like the
