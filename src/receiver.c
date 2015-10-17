@@ -44,7 +44,7 @@ int receive_data(void)
     char buffer[LENGTH];
 
     ofd = (locales.filename ? open(locales.filename, O_WRONLY | O_CREAT |
-           O_TRUNC, 0771) : fileno(stdin));
+           O_TRUNC, 0644) : fileno(stdin));
 
     if (ofd == -1) {
         perror("open");
