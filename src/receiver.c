@@ -18,6 +18,8 @@ struct config locales = {
     .filename = NULL,
     .verbose  = 0,
     .passive  = 0,
+    .window = 0,
+    .seqnum = 0,
 };
 
 /* In verbose mode, it prints the meta datas contained inside locales like the
@@ -54,8 +56,8 @@ int receive_data(void)
     if (locales.verbose)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
-    while ((read_size  = recv(locales.sockfd, buffer, 
-                              sizeof(buffer), MSG_DONTWAIT)) != -1 )
+    while ((read_size  = recv(locales.sockfd, buffer,
+                              sizeof(buffer), MSG_DONTWAIT)) != -1)
     {
         pkt = pkt_new();
 
