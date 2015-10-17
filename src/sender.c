@@ -88,10 +88,8 @@ int perform_transfer(void)
 
         pkt_del(pkt);
 
-        if (locales.filename && read_size < 512) {
-            close(ofd);
-            return 1;
-        }
+        if (read_size < 512)
+            break;
     }
 
     if (locales.filename)
