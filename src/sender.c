@@ -42,6 +42,7 @@ void print_locales(void)
 int perform_transfer(void)
 {
     pkt_t *pkt;
+    size_t length;
     int ofd, read_size;
     char buffer[LENGTH];
 
@@ -72,14 +73,15 @@ int perform_transfer(void)
             return 0;
         }
 
-        if (pkt_encode(pkt, buffer, (size_t *)&read_size) != PKT_OK) {
+        length = read_size;
+        if (pkt_encode(pkt, buffer, &length) != PKT_OK) {
             perror("pkt_encode");
             pkt_del(pkt);
             close(ofd);
             return 0;
         }
 
-        if (write(locales.sockfd, buffer, read_size) == -1) {
+        if (write(locales.sockfd, buffer, length) == -1) {
             perror("write");
             pkt_del(pkt);
             close(ofd);
@@ -87,9 +89,6 @@ int perform_transfer(void)
         }
 
         pkt_del(pkt);
-
-        if (read_size < 512)
-            break;
     }
 
     if (locales.filename)
