@@ -30,7 +30,7 @@ void arguments_parser(int argc, char **argv)
 
             else {
                 // assuming address
-                locales.addr = opt;
+                locales.addr = (strcmp(opt, "localhost") ? opt : "::1");
             }
 
             // followed by port if presents
