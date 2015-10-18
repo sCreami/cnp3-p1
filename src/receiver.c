@@ -6,6 +6,9 @@
 #include "locales.h"
 #include "socket.h"
 
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
 #include "packet.h" /*packet related functions and structures*/
 
@@ -18,8 +21,8 @@ struct config locales = {
     .filename = NULL,
     .verbose  = 0,
     .passive  = 0,
-    .window = 31,
-    .seqnum = 0,
+    .window   = 31,
+    .seqnum   = 0,
 };
 
 /* In verbose mode, it prints the meta datas contained inside locales like the
@@ -139,6 +142,8 @@ int send_control_pkt(ptypes_t type)
 int receive_data(void)
 {
     pkt_t *pkt;
+    fd_set rfds;
+    struct timeval tv;
     int ofd, read_size;
     char buffer[LENGTH];
     pkt_t *reception_window[32];
@@ -146,6 +151,7 @@ int receive_data(void)
 
     ofd = (locales.filename ? open(locales.filename, O_WRONLY | O_CREAT |
            O_TRUNC, 0644) : fileno(stdout));
+    
     bzero(reception_window, 32 * sizeof(pkt_t *));
 
     if (ofd == -1) {
@@ -156,43 +162,68 @@ int receive_data(void)
     if (locales.verbose)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
-    while ((read_size  = recv(locales.sockfd, buffer, sizeof(buffer), 0)))
+    tv = (struct timeval) {
+        .tv_sec  = 2, // should be enought to
+        .tv_usec = 0, // retrieve all packets
+    };
+
+    for (;;)
     {
-        if (read_size == -1) {
-            perror("recv");
+        FD_ZERO(&rfds);
+        FD_SET(locales.sockfd, &rfds);
+
+        if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) == -1) {
+            perror("select");
             close(ofd);
             return 0;
         }
 
-        pkt = pkt_new();
+        if (FD_ISSET(locales.sockfd, &rfds)) {
 
-        if (!pkt) {
-            perror("pkt_new");
-            close(ofd);
-            return 0;
-        }
+            read_size  = recv(locales.sockfd, buffer,
+                              sizeof(buffer), MSG_DONTWAIT);
 
-        decode_status = pkt_decode(buffer, (size_t) read_size, pkt);
-
-        if (decode_status == PKT_OK)
-        {
-            if (store_pkt(reception_window, pkt)) {
-                perror("store_pkt");
+            if (read_size == -1){
+                perror("recv");
                 close(ofd);
                 return 0;
-            }
+            } else {
+                pkt = pkt_new();
 
-            if (write_in_seq_pkt(ofd, reception_window)) {
-                perror("write_in_seq_pkt");
+                if (!pkt) {
+                    perror("pkt_new");
+                    close(ofd);
+                    return 0;
+                }
+
+                decode_status = pkt_decode(buffer, (size_t) read_size, pkt);
+
+                if (decode_status == PKT_OK) {
+
+                    if (store_pkt(reception_window, pkt)) {
+                        perror("store_pkt");
+                        close(ofd);
+                        return 0;
+                    }
+
+                    if (write_in_seq_pkt(ofd, reception_window)) {
+                        perror("write_in_seq_pkt");
+                        close(ofd);
+                        return 0;
+                    }
+
+                    send_control_pkt(PTYPE_ACK);
+                } else {
+                    send_control_pkt(PTYPE_NACK);
+                }
+            }   
+        } else {
+            // assuming -1 is EOF after 2 sec of waiting packets
+            if (recv(locales.sockfd, buffer,
+                     sizeof(buffer), MSG_PEEK | MSG_DONTWAIT) == -1) {
                 close(ofd);
-                return 0;
+                return 1;
             }
-
-            send_control_pkt(PTYPE_ACK);
-        }
-        else
-        {
-            send_control_pkt(PTYPE_NACK);
         }
     }
 

@@ -22,8 +22,8 @@ struct config locales = {
     .filename = NULL,
     .verbose  = 0,
     .passive  = 0,
-    .window = 0,
-    .seqnum = 0,
+    .window   = 0,
+    .seqnum   = 0,
 };
 
 /* In verbose mode, it prints the meta datas contained inside locales like the
@@ -43,8 +43,8 @@ void print_locales(void)
 
 int perform_transfer(void)
 {
-    fd_set fds;
     pkt_t *pkt;
+    fd_set rfds;
     size_t length;
     struct timeval tv;
     char buffer[LENGTH];
@@ -58,8 +58,8 @@ int perform_transfer(void)
     }
 
     tv = (struct timeval) {
-        .tv_sec  = 0,
-        .tv_usec = 1000,
+        .tv_sec  = 1,
+        .tv_usec = 0,
     };
 
     if (locales.verbose)
@@ -100,16 +100,16 @@ int perform_transfer(void)
 
         pkt_del(pkt);
 
-        FD_ZERO(&fds);
-        FD_SET(locales.sockfd, &fds);
+        FD_ZERO(&rfds);
+        FD_SET(locales.sockfd, &rfds);
 
-        if (select(FD_SETSIZE, &fds, NULL, NULL, &tv) == -1) {
+        if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) == -1) {
             perror("select");
             close(ofd);
             return 0;
         }
 
-        if (FD_ISSET(locales.sockfd, &fds))
+        if (FD_ISSET(locales.sockfd, &rfds))
         {
             recv_size  = recv(locales.sockfd, buffer, sizeof(buffer), 0);
 
