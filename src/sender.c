@@ -43,10 +43,12 @@ void print_locales(void)
 
 int perform_transfer(void)
 {
+    fd_set fds;
     pkt_t *pkt;
     size_t length;
-    int ofd, read_size;
+    struct timeval tv;
     char buffer[LENGTH];
+    int ofd, read_size, recv_size;
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
 
@@ -54,6 +56,11 @@ int perform_transfer(void)
         perror("open");
         return 0;
     }
+
+    tv = (struct timeval) {
+        .tv_sec  = 0,
+        .tv_usec = 1000,
+    };
 
     if (locales.verbose)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
@@ -68,6 +75,7 @@ int perform_transfer(void)
 
         pkt = pkt_build(PTYPE_DATA, locales.window, locales.seqnum,
                         read_size, buffer);
+        locales.seqnum = (locales.seqnum + 1) % 256;
 
         if (!pkt) {
             perror("pkt_build");
@@ -91,6 +99,60 @@ int perform_transfer(void)
         }
 
         pkt_del(pkt);
+
+        FD_ZERO(&fds);
+        FD_SET(locales.sockfd, &fds);
+
+        if (select(FD_SETSIZE, &fds, NULL, NULL, &tv) == -1) {
+            perror("select");
+            close(ofd);
+            return 0;
+        }
+
+        if (FD_ISSET(locales.sockfd, &fds))
+        {
+            recv_size  = recv(locales.sockfd, buffer,sizeof(buffer), 0);
+
+            if (recv_size < 0) {
+                perror("recv");
+                close(ofd);
+                return 0;
+            }
+
+            pkt = pkt_new();
+
+            if (!pkt) {
+                perror("pkt_new");
+                close(ofd);
+                return 0;
+            }
+
+            if (pkt_decode(buffer, (size_t) recv_size, pkt) == PKT_OK)
+            {
+                if (pkt->type == PTYPE_ACK)
+                {
+                    //get rid of pkt with pkt->seqnum
+                    if (locales.verbose)
+                        fprintf(stderr, "["KYEL" warn "KNRM"] received ack "
+                                "for seq %d\n", (int) pkt->seqnum);
+                }
+                else if (pkt->type == PTYPE_NACK)
+                {
+                    //send pkt with pkt->seqnum again
+                    if (locales.verbose)
+                        fprintf(stderr, "["KYEL" warn "KNRM"] pkt %d has been"
+                                "received damaged\n", (int) pkt->seqnum);
+                }
+                else
+                {
+                    if (locales.verbose)
+                        fprintf(stderr, "["KYEL" warn "KNRM"] receiver"
+                                "shouldn't send data\n");
+                }
+            }
+
+            pkt_del(pkt);
+        }
     }
 
     if (locales.verbose)
