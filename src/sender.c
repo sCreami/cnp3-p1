@@ -71,19 +71,83 @@ int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
     return 1;
 }
 
+void free_pkt_buffer(pkt_t *buffer[32])
+{
+    int i;
+
+    for  (i = 0; i < 32; i++)
+        pkt_del(buffer[i]);
+
+    locales.window = 31;
+}
+
+void drop_pkt(pkt_t *buffer[32], int seqnum)
+{
+    pkt_t * pkt;
+    int i;
+
+    if (seqnum < 0)
+        seqnum += 256;
+
+    for (i = 0; i < 32; i++)
+        if (buffer[i] && buffer[i]->seqnum == seqnum)
+        {
+            pkt = buffer[i];
+            pkt_del(pkt);
+            buffer[i] = NULL;
+            drop_pkt(buffer, seqnum - 1);
+            return;
+        }
+}
+
+int send_pkt(pkt_t *buffer[32], int seqnum)
+{
+    static char buf[520];
+    size_t length;
+    pkt_t *pkt;
+
+    if (seqnum < 0)
+        seqnum += 256;
+
+    pkt = withdraw_pkt(buffer, seqnum);
+    store_pkt(buffer, pkt);
+    length = 520;
+
+    if (!pkt) {
+        if (locales.verbose)
+            fprintf(stderr, "["KRED" err  "KNRM"] pkt with seqnum %d doesn't "
+                    "exist\n", seqnum);
+
+        perror("withdraw_pkt");
+        return 0;
+    }
+
+    if (pkt_encode(pkt, buf, &length) != PKT_OK) {
+        perror("pkt_encode");
+        return 1;
+    }
+
+    if (send(locales.sockfd, buf, length, 0) == -1) {
+        perror("send");
+        return 1;
+    }
+
+    return 0;
+}
+
 #define LENGTH 4 + 512 + 4
 
 int perform_transfer(void)
 {
     pkt_t *pkt;
     fd_set rfds;
-    size_t length;
     char buffer[520];
     struct timeval tv;
-    //pkt_t *pkt_archives[32];
+    pkt_t *pkt_archives[32];
     int ofd, read_size, recv_size;
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
+    bzero(pkt_archives, 32 * sizeof(pkt_t *));
 
     if (ofd == -1) {
         perror("open");
@@ -101,6 +165,7 @@ int perform_transfer(void)
     while ((read_size = read(ofd, buffer, 512)))
     {
         if (read_size < 0) {
+            free_pkt_buffer(pkt_archives);
             perror("read");
             close(ofd);
             return 0;
@@ -108,35 +173,29 @@ int perform_transfer(void)
 
         pkt = pkt_build(PTYPE_DATA, locales.window, locales.seqnum,
                         read_size, buffer);
-        locales.seqnum = (locales.seqnum + 1) % 256;
 
         if (!pkt) {
+            free_pkt_buffer(pkt_archives);
             perror("pkt_build");
             close(ofd);
             return 0;
         }
 
-        length = read_size;
-        if (pkt_encode(pkt, buffer, &length) != PKT_OK) {
-            perror("pkt_encode");
-            pkt_del(pkt);
+        locales.seqnum = (locales.seqnum + 1) % 256;
+        store_pkt(pkt_archives, pkt);
+
+        if (send_pkt(pkt_archives, locales.seqnum - 1)) {
+            free_pkt_buffer(pkt_archives);
+            perror("send_pkt");
             close(ofd);
             return 0;
         }
-
-        if (send(locales.sockfd, buffer, length, 0) == -1) {
-            perror("send");
-            pkt_del(pkt);
-            close(ofd);
-            return 0;
-        }
-
-        pkt_del(pkt);
 
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
 
         if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) == -1) {
+            free_pkt_buffer(pkt_archives);
             perror("select");
             close(ofd);
             return 0;
@@ -147,6 +206,7 @@ int perform_transfer(void)
             recv_size  = recv(locales.sockfd, buffer, sizeof(buffer), 0);
 
             if (recv_size < 0) {
+                free_pkt_buffer(pkt_archives);
                 perror("recv");
                 close(ofd);
                 return 0;
@@ -155,6 +215,7 @@ int perform_transfer(void)
             pkt = pkt_new();
 
             if (!pkt) {
+                free_pkt_buffer(pkt_archives);
                 perror("pkt_new");
                 close(ofd);
                 return 0;
@@ -164,7 +225,8 @@ int perform_transfer(void)
             {
                 if (pkt->type == PTYPE_ACK)
                 {
-                    //get rid of pkt with pkt->seqnum
+                    drop_pkt(pkt_archives, pkt->seqnum - 1);
+
                     if (locales.verbose)
                         fprintf(stderr, "["KYEL" warn "KNRM"] received ack "
                                 "for seq %d\n", (int) pkt->seqnum);
