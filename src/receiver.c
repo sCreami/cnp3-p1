@@ -156,9 +156,14 @@ int receive_data(void)
     if (locales.verbose)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
-    while ((read_size  = recv(locales.sockfd, buffer,
-                              sizeof(buffer), 0)) != -1)
+    while ((read_size  = recv(locales.sockfd, buffer, sizeof(buffer), 0)))
     {
+        if (read_size == -1) {
+            perror("recv");
+            close(ofd);
+            return 0;
+        }
+
         pkt = pkt_new();
 
         if (!pkt) {
@@ -189,12 +194,6 @@ int receive_data(void)
         {
             send_control_pkt(PTYPE_NACK);
         }
-    }
-
-    if (errno != EAGAIN) { // recv return -1 when the socket dies
-        perror("recv");
-        close(ofd);
-        return 0;
     }
 
     if (locales.verbose)
