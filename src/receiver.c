@@ -157,7 +157,7 @@ int receive_data(void)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
     while ((read_size  = recv(locales.sockfd, buffer,
-                              sizeof(buffer), MSG_DONTWAIT)) != -1)
+                              sizeof(buffer), 0)) != -1)
     {
         pkt = pkt_new();
 
@@ -203,7 +203,7 @@ int receive_data(void)
     if (locales.filename)
         close(ofd);
 
-    if (shutdown(locales.sockfd, SHUT_RD) == -1) {
+    if (shutdown(locales.sockfd, SHUT_RDWR) == -1) {
         perror("shutdown");
         return 0;
     }

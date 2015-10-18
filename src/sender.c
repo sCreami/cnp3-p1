@@ -111,7 +111,7 @@ int perform_transfer(void)
 
         if (FD_ISSET(locales.sockfd, &fds))
         {
-            recv_size  = recv(locales.sockfd, buffer,sizeof(buffer), 0);
+            recv_size  = recv(locales.sockfd, buffer, sizeof(buffer), 0);
 
             if (recv_size < 0) {
                 perror("recv");
@@ -161,7 +161,7 @@ int perform_transfer(void)
     if (locales.filename)
         close(ofd);
 
-    if (shutdown(locales.sockfd, SHUT_WR) == -1) {
+    if (shutdown(locales.sockfd, SHUT_RDWR) == -1) {
         perror("shutdown");
         return 0;
     }
