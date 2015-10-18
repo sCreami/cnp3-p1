@@ -22,7 +22,7 @@ struct config locales = {
     .filename = NULL,
     .verbose  = 0,
     .passive  = 0,
-    .window   = 0,
+    .window   = 31,
     .seqnum   = 0,
 };
 
@@ -39,6 +39,38 @@ void print_locales(void)
                     (locales.filename ? locales.filename : "stdin"));
 }
 
+pkt_t * withdraw_pkt(pkt_t *buffer[32], int seqnum)
+{
+    pkt_t *pkt;
+    int i;
+
+    for (i = 0; i < 32; i++)
+        if (buffer[i] != NULL && buffer[i]->seqnum == seqnum)
+        {
+            locales.window--;
+            pkt = buffer[i];
+            buffer[i] = NULL;
+            return pkt;
+        }
+
+    return NULL;
+}
+
+int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
+{
+    int i;
+
+    for (i = 0; i < 32; i++)
+        if (buffer[i] ==  NULL)
+        {
+            locales.window--;
+            buffer[i] = pkt;
+            return 0;
+        }
+
+    return 1;
+}
+
 #define LENGTH 4 + 512 + 4
 
 int perform_transfer(void)
@@ -46,8 +78,9 @@ int perform_transfer(void)
     pkt_t *pkt;
     fd_set rfds;
     size_t length;
+    char buffer[520];
     struct timeval tv;
-    char buffer[LENGTH];
+    //pkt_t *pkt_archives[32];
     int ofd, read_size, recv_size;
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
