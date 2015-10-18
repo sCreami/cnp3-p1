@@ -78,6 +78,8 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
         if (!pkt) //end of in_seq pkt
             break;
 
+        locales.seqnum = (locales.seqnum + 1) % 256;
+
         if (write(fd, pkt->payload, pkt->length) == -1) {
             perror("write");
             pkt_del(pkt);
@@ -97,6 +99,37 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
         memcpy(buffer, &buffer[i], 32 - i);
         memset(&buffer[i], 0, i);
     }
+
+    return 0;
+}
+
+int send_control_pkt(ptypes_t type)
+{
+    char buffer[8];
+    size_t length;
+    pkt_t * pkt;
+
+    pkt = pkt_build(type, locales.window, locales.seqnum, 0, NULL);
+    length = 8;
+
+    if (!pkt) {
+        perror("pkt_build");
+        return 1;
+    }
+
+    if (pkt_encode(pkt, buffer, &length) != PKT_OK) {
+        perror("pkt_encode");
+        pkt_del(pkt);
+        return 1;
+    }
+
+    if (send(locales.sockfd, buffer, length, 0) == -1) {
+        perror("send");
+        pkt_del(pkt);
+        return 1;
+    }
+
+    pkt_del(pkt);
 
     return 0;
 }
@@ -150,11 +183,11 @@ int receive_data(void)
                 return 0;
             }
 
-            //send ack
+            send_control_pkt(PTYPE_ACK);
         }
         else
         {
-            //send nack
+            send_control_pkt(PTYPE_NACK);
         }
     }
 
