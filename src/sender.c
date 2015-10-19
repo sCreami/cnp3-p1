@@ -11,7 +11,7 @@
 #include "socket.h"
 
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
-#include "packet.h" /*packet related functions and structures*/
+#include "packet.h" /* packet related functions and structures */
 
 /* This structure will store the shared parameters of all functions. Its
  * definition can be found in locales.h */
@@ -21,7 +21,6 @@ struct config locales = {
     .port     = 8080,
     .filename = NULL,
     .verbose  = 0,
-    .passive  = 0,
     .window   = 31,
     .seqnum   = 0,
 };
@@ -115,7 +114,7 @@ int send_pkt(pkt_t *buffer[32], int seqnum)
 
     if (!pkt) {
         if (locales.verbose)
-            fprintf(stderr, "["KRED" err  "KNRM"] pkt with seqnum %d doesn't "
+            fprintf(stderr, "["KRED" error"KNRM"] pkt with seqnum %d doesn't "
                     "exist\n", seqnum);
 
         perror("withdraw_pkt");
@@ -155,8 +154,8 @@ int perform_transfer(void)
     }
 
     tv = (struct timeval) {
-        .tv_sec  = 1,
-        .tv_usec = 0,
+        .tv_sec  = 0,
+        .tv_usec = 500,
     };
 
     if (locales.verbose)
@@ -201,9 +200,10 @@ int perform_transfer(void)
             return 0;
         }
 
-        if (FD_ISSET(locales.sockfd, &rfds))
-        {
-            recv_size  = recv(locales.sockfd, buffer, sizeof(buffer), 0);
+        if (FD_ISSET(locales.sockfd, &rfds)) {
+
+            recv_size  = recv(locales.sockfd, buffer,
+                              sizeof(buffer), MSG_DONTWAIT);
 
             if (recv_size < 0) {
                 free_pkt_buffer(pkt_archives);
@@ -223,26 +223,25 @@ int perform_transfer(void)
 
             if (pkt_decode(buffer, (size_t) recv_size, pkt) == PKT_OK)
             {
-                if (pkt->type == PTYPE_ACK)
-                {
-                    drop_pkt(pkt_archives, pkt->seqnum - 1);
 
-                    if (locales.verbose)
-                        fprintf(stderr, "["KYEL" warn "KNRM"] received ack "
-                                "for seq %d\n", (int) pkt->seqnum);
-                }
-                else if (pkt->type == PTYPE_NACK)
+                switch (pkt->type)
                 {
-                    //send pkt with pkt->seqnum again
-                    if (locales.verbose)
-                        fprintf(stderr, "["KYEL" warn "KNRM"] pkt %d has been"
-                                "received damaged\n", (int) pkt->seqnum);
-                }
-                else
-                {
-                    if (locales.verbose)
-                        fprintf(stderr, "["KYEL" warn "KNRM"] receiver"
-                                "shouldn't send data\n");
+                    case PTYPE_ACK:
+                        drop_pkt(pkt_archives, pkt->seqnum - 1);
+                        break;
+
+                    case PTYPE_NACK:
+                        //send pkt with pkt->seqnum again
+                        if (locales.verbose)
+                            fprintf(stderr, "["KYEL" warn "KNRM"] pkt %d has "
+                                  "been received damaged\n", (int) pkt->seqnum);
+                        break;
+
+                    default:
+                        if (locales.verbose)
+                            fprintf(stderr, "["KYEL" warn "KNRM"] receiver"
+                                    "shouldn't send data\n");
+                        break;
                 }
             }
 
