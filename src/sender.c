@@ -46,7 +46,7 @@ pkt_t * withdraw_pkt(pkt_t *buffer[32], int seqnum)
     for (i = 0; i < 32; i++)
         if (buffer[i] != NULL && buffer[i]->seqnum == seqnum)
         {
-            locales.window--;
+            locales.window++;
             pkt = buffer[i];
             buffer[i] = NULL;
             return pkt;
@@ -83,20 +83,25 @@ void free_pkt_buffer(pkt_t *buffer[32])
 void drop_pkt(pkt_t *buffer[32], int seqnum)
 {
     pkt_t * pkt;
-    int i;
 
     if (seqnum < 0)
         seqnum += 256;
 
+    pkt = withdraw_pkt(buffer, seqnum);
+
+    if (pkt) {
+        drop_pkt(buffer, seqnum - 1);
+        pkt_del(pkt);
+    }
+}
+
+int is_buffer_empty(pkt_t *buffer[32])
+{
+    int i;
     for (i = 0; i < 32; i++)
-        if (buffer[i] && buffer[i]->seqnum == seqnum)
-        {
-            pkt = buffer[i];
-            pkt_del(pkt);
-            buffer[i] = NULL;
-            drop_pkt(buffer, seqnum - 1);
-            return;
-        }
+        if (buffer[i])
+            return 0;
+    return 1;
 }
 
 int send_pkt(pkt_t *buffer[32], int seqnum)
@@ -157,38 +162,54 @@ int perform_transfer(void)
         .tv_sec  = 0,
         .tv_usec = 500,
     };
+    read_size = 1;
 
     if (locales.verbose)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
-    while ((read_size = read(ofd, buffer, 512)))
+    for (;;)
     {
-        if (read_size < 0) {
-            free_pkt_buffer(pkt_archives);
-            perror("read");
-            close(ofd);
-            return 0;
+        if (locales.window && read_size)
+        {
+            read_size = read(ofd, buffer, 512);
+
+            if (read_size < 0) {
+                free_pkt_buffer(pkt_archives);
+                perror("read");
+                close(ofd);
+                return 0;
+            }
+        }
+        else if (!read_size && is_buffer_empty(pkt_archives))
+        {
+            break;
         }
 
-        pkt = pkt_build(PTYPE_DATA, locales.window, locales.seqnum,
-                        read_size, buffer);
+        if (locales.window && read_size)
+        {
+            pkt = pkt_build(PTYPE_DATA, locales.window, locales.seqnum,
+                            read_size, buffer);
 
-        if (!pkt) {
-            free_pkt_buffer(pkt_archives);
-            perror("pkt_build");
-            close(ofd);
-            return 0;
+            if (!pkt) {
+                free_pkt_buffer(pkt_archives);
+                perror("pkt_build");
+                close(ofd);
+                return 0;
+            }
+
+            locales.seqnum = (locales.seqnum + 1) % 256;
+            store_pkt(pkt_archives, pkt);
+
+            if (send_pkt(pkt_archives, locales.seqnum - 1)) {
+                free_pkt_buffer(pkt_archives);
+                perror("send_pkt");
+                close(ofd);
+                return 0;
+            }
         }
 
-        locales.seqnum = (locales.seqnum + 1) % 256;
-        store_pkt(pkt_archives, pkt);
-
-        if (send_pkt(pkt_archives, locales.seqnum - 1)) {
-            free_pkt_buffer(pkt_archives);
-            perror("send_pkt");
-            close(ofd);
-            return 0;
-        }
+        if (!read_size && is_buffer_empty(pkt_archives))
+            break;
 
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
@@ -223,15 +244,18 @@ int perform_transfer(void)
 
             if (pkt_decode(buffer, (size_t) recv_size, pkt) == PKT_OK)
             {
-
                 switch (pkt->type)
                 {
                     case PTYPE_ACK:
                         drop_pkt(pkt_archives, pkt->seqnum - 1);
+                        /*if (locales.verbose)
+                            fprintf(stderr, "["KYEL" warn "KNRM"] received ACK "
+                                    "for pkt %d (%d)\n", (int) pkt->seqnum,
+                                    locales.window);*/
                         break;
 
                     case PTYPE_NACK:
-                        //send pkt with pkt->seqnum again
+                        send_pkt(pkt_archives, pkt->seqnum - 1);
                         if (locales.verbose)
                             fprintf(stderr, "["KYEL" warn "KNRM"] pkt %d has "
                                   "been received damaged\n", (int) pkt->seqnum);
