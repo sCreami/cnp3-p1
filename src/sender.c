@@ -208,9 +208,6 @@ int perform_transfer(void)
             }
         }
 
-        if (!read_size && is_buffer_empty(pkt_archives))
-            break;
-
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
 
