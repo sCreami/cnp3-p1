@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -139,6 +140,16 @@ int send_pkt(pkt_t *buffer[32], int seqnum)
     return 0;
 }
 
+long get_elapsed_time(struct timeval *start, struct timeval *end)
+{
+    long sec = end->tv_sec - start->tv_sec;
+    long usec = end->tv_usec - start->tv_usec;
+
+    long result = sec * 1000 + usec / 1000;
+
+    return result;
+}
+
 #define LENGTH 4 + 512 + 4
 
 int perform_transfer(void)
@@ -199,6 +210,7 @@ int perform_transfer(void)
                 close(ofd);
                 return 0;
             }
+            gettimeofday(&pkt->tv, NULL);
 
             locales.seqnum = (locales.seqnum + 1) % 256;
             store_pkt(pkt_archives, pkt);
@@ -252,7 +264,7 @@ int perform_transfer(void)
                         if (last_ack != pkt->seqnum)
                             last_ack = pkt->seqnum;
                         else
-                        send_pkt(pkt_archives, pkt->seqnum);
+                            send_pkt(pkt_archives, pkt->seqnum);
 
                         drop_pkt(pkt_archives, pkt->seqnum - 1);
                         /*if (locales.verbose)
@@ -278,6 +290,16 @@ int perform_transfer(void)
 
             pkt_del(pkt);
         }
+
+        struct timeval current_time;
+        gettimeofday(&current_time, NULL);
+
+        for (int i = 0; i < 32; i++)
+            if (pkt_archives[i] && get_elapsed_time(&pkt_archives[i]->tv, &current_time) > 500)
+            {
+                pkt_archives[i]->tv = current_time;
+                send_pkt(pkt_archives, pkt_archives[i]->seqnum);
+            }
     }
 
     if (locales.verbose)
