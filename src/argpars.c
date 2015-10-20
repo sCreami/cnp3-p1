@@ -5,7 +5,7 @@
  */
 
 /* Fill the local configuration following the parameters given in arguments.
- * It reads argc and argv to fill the static structure locales with valid data. */
+ * It reads argc and argv to fill the static structure with valid data. */
 void arguments_parser(int argc, char **argv)
 {
     char *opt, *endptr;
@@ -20,7 +20,7 @@ void arguments_parser(int argc, char **argv)
             locales.filename = argv[++i];
         }
 
-        else if (strstr(opt, ":") || !strcmp(opt, "localhost")) {
+        else if (real_address(opt, NULL, 1)) {
 
             if (locales.idef && !strcmp(opt, "::")) {
                 // listen to all interfaces
@@ -30,7 +30,7 @@ void arguments_parser(int argc, char **argv)
 
             else {
                 // assuming address
-                locales.addr = (strcmp(opt, "localhost") ? opt : "::1");
+                locales.addr = opt;
             }
 
             // followed by port if presents

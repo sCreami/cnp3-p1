@@ -2,7 +2,7 @@
 
 #include "socket.h"
 
-int real_address(const char *address, struct sockaddr_in6 *rval)
+int real_address(const char *address, struct sockaddr_in6 *rval, int flag)
 {
     struct addrinfo hints, *res, *p;
     int status;
@@ -18,6 +18,11 @@ int real_address(const char *address, struct sockaddr_in6 *rval)
 
     status = getaddrinfo(address, NULL, &hints, &res);
 
+    // used by argpars to check
+    // for address in args
+    if (flag)
+        return !status;
+
     if (status) {
         if (locales.verbose)
             fprintf(stderr, "%s\n", gai_strerror(status));
@@ -26,6 +31,8 @@ int real_address(const char *address, struct sockaddr_in6 *rval)
 
     for (p = res; p != NULL; p = p->ai_next)
         memcpy(rval, p->ai_addr, sizeof(*rval));
+
+    freeaddrinfo(res);
 
     return 0;
 }
@@ -74,7 +81,7 @@ int connect_socket(void)
     // ensure cleaniness
     bzero(&addr, sizeof(addr));
 
-    if (real_address(locales.addr, &addr)) {
+    if (real_address(locales.addr, &addr, 0)) {
         perror("real_address");
         close(sockfd);
         return 0;
