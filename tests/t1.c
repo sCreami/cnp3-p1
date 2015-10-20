@@ -36,6 +36,30 @@ void test_real_address(void)
     CU_ASSERT(!memcmp(&rval.sin6_addr, &IPv6, sizeof(IPv6)));
 }
 
+void test_connect_socket(void)
+{
+    int sockfd;
+    int wsize, rsize;
+    char helloing[] = "Hello World!";
+    char worlding[13];
+
+    // connect_socket() nécessite le contenu
+    // de locales pour fonctionner
+    // NB : test comme sender
+    sockfd = connect_socket();
+
+    CU_ASSERT(sockfd > 0);
+
+    /* Testing socket readability-writability */
+    wsize = write(sockfd, helloing, sizeof(helloing));
+    CU_ASSERT(wsize > 0);
+
+    rsize = read(sockfd, worlding, wsize);
+    CU_ASSERT(rsize = wsize);
+
+    close(sockfd);
+}
+
 int main(void)
 {
     CU_pSuite sockSuite;
@@ -53,7 +77,8 @@ int main(void)
     }
 
     /* add the tests to the suite */
-    if (!(CU_add_test(sockSuite, "test_real_address", test_real_address)))
+    if (!(CU_add_test(sockSuite, "test_real_address", test_real_address)) ||
+        !(CU_add_test(sockSuite, "test_connect_socket", test_connect_socket)))
     {
         CU_cleanup_registry();
         return CU_get_error();
