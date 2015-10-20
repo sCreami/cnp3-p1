@@ -148,6 +148,7 @@ int perform_transfer(void)
     char buffer[520];
     struct timeval tv;
     pkt_t *pkt_archives[32];
+    int receiver_window, last_ack;
     int ofd, read_size, recv_size;
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
@@ -162,14 +163,16 @@ int perform_transfer(void)
         .tv_sec  = 0,
         .tv_usec = 500,
     };
+    last_ack = 0;
     read_size = 1;
+    receiver_window = 31;
 
     if (locales.verbose)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
     for (;;)
     {
-        if (locales.window && read_size)
+        if (locales.window && receiver_window && read_size)
         {
             read_size = read(ofd, buffer, 512);
 
@@ -185,7 +188,7 @@ int perform_transfer(void)
             break;
         }
 
-        if (locales.window && read_size)
+        if (locales.window && receiver_window && read_size)
         {
             pkt = pkt_build(PTYPE_DATA, locales.window, locales.seqnum,
                             read_size, buffer);
@@ -241,21 +244,28 @@ int perform_transfer(void)
 
             if (pkt_decode(buffer, (size_t) recv_size, pkt) == PKT_OK)
             {
+                receiver_window = pkt->window;
+
                 switch (pkt->type)
                 {
                     case PTYPE_ACK:
+                        if (last_ack != pkt->seqnum)
+                            last_ack = pkt->seqnum;
+                        else
+                        send_pkt(pkt_archives, pkt->seqnum);
+
                         drop_pkt(pkt_archives, pkt->seqnum - 1);
                         /*if (locales.verbose)
                             fprintf(stderr, "["KYEL" warn "KNRM"] received ACK "
-                                    "for pkt %d (%d)\n", (int) pkt->seqnum,
-                                    locales.window);*/
+                                    "for pkt %d\n", (int) pkt->seqnum);*/
                         break;
 
                     case PTYPE_NACK:
-                        send_pkt(pkt_archives, pkt->seqnum - 1);
+                        send_pkt(pkt_archives, pkt->seqnum);
                         if (locales.verbose)
-                            fprintf(stderr, "["KYEL" warn "KNRM"] pkt %d has "
-                                  "been received damaged\n", (int) pkt->seqnum);
+                            fprintf(stderr, "["KYEL" warn "KNRM"] received NACK"
+                                    " for pkt %d\n",
+                                    (int) pkt->seqnum);
                         break;
 
                     default:

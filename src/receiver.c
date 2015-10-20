@@ -58,7 +58,10 @@ int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
     seqnum_diff = pkt->seqnum - locales.seqnum;
 
     if (seqnum_diff < 0 || seqnum_diff > 31)
-        return 1;
+    {
+        pkt_del(pkt);
+        return 0;
+    }
 
     if (buffer[seqnum_diff] != NULL)
         return 1;
@@ -78,15 +81,15 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
     {
         pkt = withdraw_pkt(buffer, i);
 
-        if (!pkt) //end of in_seq pkt
-            break;
+        if (pkt && pkt->seqnum == locales.seqnum)
+        {
+            locales.seqnum = (locales.seqnum + 1) % 256;
 
-        locales.seqnum = (locales.seqnum + 1) % 256;
-
-        if (write(fd, pkt->payload, pkt->length) == -1) {
-            perror("write");
-            pkt_del(pkt);
-            return 1;
+            if (write(fd, pkt->payload, pkt->length) == -1) {
+                perror("write");
+                pkt_del(pkt);
+                return 1;
+            }
         }
 
         pkt_del(pkt);
