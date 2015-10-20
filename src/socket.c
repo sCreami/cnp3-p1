@@ -102,9 +102,7 @@ int connect_socket(void)
         if (locales.verbose)
             fprintf(stderr, "["KBLU" info "KNRM"] Waiting for sender\n");
 
-        match = 0;
-        while (!match)
-        {
+        do {
             if (recvfrom(sockfd, &dull, 1, MSG_PEEK,
                          (struct sockaddr *) &addr, &addr_len) == -1) {
                 perror("recvfrom");
@@ -112,11 +110,15 @@ int connect_socket(void)
                 return 0;
             }
 
-            match = !memcmp(&rmot.sin6_addr, &addr.sin6_addr, sizeof(sin6_len));
+            if (locales.passive) {
+                match = 1;
+            } else {
+                match = !memcmp(&rmot.sin6_addr, &addr.sin6_addr, sizeof(sin6_len));
 
-            if (!match && !clean_buffer(sockfd))
-                perror("clean_buffer");
-        }
+                if (!match && !clean_buffer(sockfd))
+                    perror("clean_buffer");
+            }
+        } while (!match);
     }
 
     if (connect(sockfd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
