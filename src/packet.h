@@ -44,7 +44,7 @@ typedef enum {
 
 typedef struct __attribute__((__packed__)) pkt
 {
-    /* header */
+    /* Header */
 
     uint8_t  window  : 5;
     ptypes_t type    : 3;
@@ -54,6 +54,10 @@ typedef struct __attribute__((__packed__)) pkt
     /* Content */
 
     char *   payload;
+
+    /* Util */
+
+    struct timeval tv;
 } pkt_t;
 
 /* Creates a new struct pkt and allows to initialize it's fields

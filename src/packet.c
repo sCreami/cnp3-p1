@@ -101,10 +101,6 @@ pkt_status_code pkt_decode(const char *data, const size_t len, pkt_t *pkt)
             pkt_set_payload(pkt, data + 4, pkt_get_length(pkt));
         }
     }
-    else
-    {
-        return E_NOPAYLOAD;
-    }
 
     return PKT_OK;
 }
