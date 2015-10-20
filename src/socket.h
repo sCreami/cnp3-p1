@@ -22,4 +22,6 @@
 
 int connect_socket(void);
 
+int real_address(const char *address, struct sockaddr_in6 *rval);
+
 #endif /* _SOCKET_H */
