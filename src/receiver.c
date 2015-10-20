@@ -17,7 +17,7 @@
 struct config locales = {
     .idef     = 1,
     .addr     = "::1",
-    .port     = 8080,
+    .port     = 64341,
     .filename = NULL,
     .verbose  = 0,
     .passive  = 0,
