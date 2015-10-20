@@ -1,20 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-
-#include <CUnit/Basic.h>
-#include <CUnit/CUnit.h>
-
-#include "../src/socket.h"
-
-struct config locales = {
-    .idef     = 0,
-    .addr     = "::1",
-    .port     = 8080,
-    .filename = NULL,
-    .verbose  = 0,
-    .window   = 31,
-    .seqnum   = 0,
-};
+#include "t1.h"
 
 void test_real_address(void)
 {
@@ -58,35 +42,4 @@ void test_connect_socket(void)
     CU_ASSERT(rsize = wsize);
 
     close(sockfd);
-}
-
-int main(void)
-{
-    CU_pSuite sockSuite;
-
-    /* initialize the CUnit test registry */
-    if (CUE_SUCCESS != CU_initialize_registry())
-        return CU_get_error();
-
-    /* add suites to the registry */
-    sockSuite = CU_add_suite("socket_suite", NULL, NULL);
-
-    if (!sockSuite) {
-        CU_cleanup_registry();
-        return CU_get_error();
-    }
-
-    /* add the tests to the suite */
-    if (!(CU_add_test(sockSuite, "test_real_address", test_real_address)) ||
-        !(CU_add_test(sockSuite, "test_connect_socket", test_connect_socket)))
-    {
-        CU_cleanup_registry();
-        return CU_get_error();
-    }
-
-    /* Run all tests using the CUnit Basic interface */
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-    CU_cleanup_registry();
-    return CU_get_error();
 }
