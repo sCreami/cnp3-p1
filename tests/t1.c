@@ -25,12 +25,12 @@ void test_real_address(void)
     memset(&rval, 0, sizeof(rval));
     memset(&IPv6, 0, sizeof(IPv6));
 
-    char remote[] = "2a03:2880:1010:6f03:face:b00c::2";
+    char loopback[] = "::1";
 
-    if(inet_pton(AF_INET6, remote, &IPv6) == 0)
+    if(inet_pton(AF_INET6, loopback, &IPv6) == 0)
         CU_FAIL("inet_pton");
 
-    status = real_address("facebook.com", &rval); // 0 on success
+    status = real_address("localhost", &rval); // 0 on success
     CU_ASSERT(!status);
 
     CU_ASSERT(!memcmp(&rval.sin6_addr, &IPv6, sizeof(IPv6)));
