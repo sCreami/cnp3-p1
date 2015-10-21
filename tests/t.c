@@ -1,14 +1,7 @@
-#include "t2.h"
+#include <CUnit/Basic.h>
+#include <CUnit/CUnit.h>
 
-int setup(void)
-{
-	return 0;
-}
-
-int teardown(void)
-{
-	return 0;
-}
+#include "../src/packet.h"
 
 /*
  * Only the result of encode for valid input is tested here.
@@ -82,38 +75,37 @@ void test_decode()
     CU_ASSERT_EQUAL(pkt_get_type(pkt), PTYPE_DATA);
     CU_ASSERT_EQUAL(pkt_get_window(pkt), 17);
     CU_ASSERT_EQUAL(pkt_get_seqnum(pkt), 42);
-    CU_ASSERT_EQUAL(pkt_get_length(pkt), 5);Only the result of encode for valid input is tested here.
+    CU_ASSERT_EQUAL(pkt_get_length(pkt), 5); //Only the result of encode for valid input is tested here.
     CU_ASSERT_EQUAL(strncmp(pkt_get_payload(pkt), payload, 8), 0);
-
 }
 
-/*int main()
+int main(void)
 {
-    int initialization_status = CU_initialize_registry();
+    CU_pSuite paktSuite;
 
-    if (initialization_status != CUE_SUCCESS)
-	   return CU_get_error();
+    /* initialize the CUnit test registry */
+    if (CUE_SUCCESS != CU_initialize_registry())
+        return CU_get_error();
 
-    CU_pSuite pSuite = CU_add_suite("pkt tests", setup, teardown);
+    /* add suite to the registry */
+    paktSuite = CU_add_suite("packet_suite", NULL, NULL);
 
-    if (!pSuite)
-    {
+    if (!paktSuite) {
         CU_cleanup_registry();
-		return CU_get_error();
+        return CU_get_error();
     }
 
-    if
-    (
-        !CU_add_test(pSuite, "test encode", test_encode) ||
-        !CU_add_test(pSuite, "test decode", test_decode)
-    )
+    /* add the tests to the suite */
+    if (!(CU_add_test(paktSuite, "test_encode", test_encode)) ||
+        !(CU_add_test(paktSuite, "test_decode", test_decode)))
     {
         CU_cleanup_registry();
-		return CU_get_error();
+        return CU_get_error();
     }
 
+    /* Run all tests using the CUnit Basic interface */
+    CU_basic_set_mode(CU_BRM_VERBOSE);
     CU_basic_run_tests();
     CU_cleanup_registry();
-
-    return EXIT_SUCCESS;
-}*/
+    return CU_get_error();
+}
