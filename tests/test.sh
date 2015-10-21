@@ -12,7 +12,7 @@ openssl sha1 /dev/stdout > /dev/null
 if [ "$?" != 0 ]; then
 	echo ">> OpenSSL not available"
 	echo "-- Test failed --"
-	exit 1
+	exit 1;
 fi
 
 # Thus running sender-receiver
@@ -37,6 +37,7 @@ echo ">> Launching sender and transfering"
 if [ "$?" != 0 ]; then
 	echo ">> sender failed with exit code $?"
 	echo "-- Test failed --"
+	exit 1;
 else
 	wait $PIDRECV
 	if [ "$?" != 0 ]; then
@@ -84,6 +85,7 @@ echo ">> Launching sender and transfering"
 if [ "$?" != 0 ]; then
 	echo ">> sender failed with exit code $?"
 	echo "-- Test failed --"
+	exit 1;
 else
 	wait $PIDRECV
 	if [ "$?" != 0 ]; then
@@ -97,12 +99,13 @@ else
 		if [  $SHA1A != $SHA1B ]; then
 			echo ">> The received file did not match the sent one"
 			echo "-- Test failed --"
-			exit 1;			
+			exit 1;
 		fi
 	fi
 fi
 
-echo ">> SUCCEEDED ! Well done, you passed the test."
+echo ">> Well done, you passed the test."
 echo ">> Cleaning behind"
+echo "-- Test succeeded --"
 rm -f in.dat && rm -f out.dat
-exit 0
+exit 0;
