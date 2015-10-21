@@ -193,14 +193,7 @@ int perform_transfer(void)
                 close(ofd);
                 return 0;
             }
-        }
-        else if (!read_size && is_buffer_empty(pkt_archives))
-        {
-            break;
-        }
 
-        if (locales.window && receiver_window && read_size)
-        {
             pkt = pkt_build(PTYPE_DATA, locales.window, locales.seqnum,
                             read_size, buffer);
 
@@ -222,6 +215,10 @@ int perform_transfer(void)
                 return 0;
             }
         }
+        else if (!read_size && is_buffer_empty(pkt_archives))
+        {
+            break;
+        }
 
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
@@ -240,6 +237,8 @@ int perform_transfer(void)
 
             if (recv_size < 0) {
                 free_pkt_buffer(pkt_archives);
+                if (read_size == 0)
+                    break;
                 perror("recv");
                 close(ofd);
                 return 0;
