@@ -42,6 +42,13 @@ int main(void)
         return CU_get_error();
     }
 
+    if (!(CU_add_test(paktSuite, "test_encode", test_encode)) ||
+        !(CU_add_test(paktSuite, "test_decode", test_decode)))
+    {
+        CU_cleanup_registry();
+        return CU_get_error();
+    }
+
     if (0) // add T2 tests
     {
         CU_cleanup_registry();
