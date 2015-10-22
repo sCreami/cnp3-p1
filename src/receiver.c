@@ -223,10 +223,10 @@ int receive_data(void)
                     return 0;
                 }
 
+                send_control_pkt(PTYPE_ACK);
+
                 if (write_status)
                     break;
-
-                send_control_pkt(PTYPE_ACK);
             }
             else
             {
