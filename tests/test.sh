@@ -1,10 +1,9 @@
 #!/bin/sh
 set -e
-export LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
 
 echo "#####################################"
 echo "# LINGI 1341 Project Testing Script #"
-echo "#       -- 21 October 2015 --       #"
+echo "#       -- 22 October 2015 --       #"
 echo "#####################################"
 
 # Check if OpenSSL is installed 
@@ -17,11 +16,6 @@ fi
 
 # Thus running sender-receiver
 # for their checksum.
-echo ">> Building CUnit tests"
-make cunit > /dev/null
-echo ">> Running CUnit for packets"
-./test
-echo ">> Testing for sender-receiver"
 echo ">> Generating a 100MB file"
 dd if=/dev/urandom bs=400000 count=250 of=in.dat 2> /dev/null
 CHECKSUM=`openssl sha1 in.dat`
@@ -30,7 +24,7 @@ echo ">> Launching receiver"
 ./receiver :: 64341 -f out.dat &
 PIDRECV=$!
 
-sleep 1
+sleep 2
 echo ">> Launching sender and transfering"
 ./sender ::1 64341 -f in.dat
 
@@ -65,20 +59,19 @@ echo ">> Generating a 1MB file"
 dd if=/dev/urandom bs=40000 count=25 of=in.dat 2> /dev/null
 CHECKSUM=`openssl sha1 in.dat`
 
-cd tests/linksim/ && make > /dev/null
+(cd tests/linksim/ && make) > /dev/null
 if [ "$?" != 0 ]; then
 	echo "!! Failed to build link_sim"
 	exit 1;
 fi
 
-./link_sim -p 1234 -P 4321 -d 500 -j 500 -e 5 -c 5 -l 5 > /dev/null &
-cd ../.. # I fckg know thnk u
+./tests/linksim/link_sim -p 1234 -P 4321 -d 500 -j 500 -e 5 -c 5 -l 5 > /dev/null &
 
 echo ">> Launching receiver"
 ./receiver :: 4321 -f out.dat &
 PIDRECV=$!
 
-sleep 1
+sleep 2
 echo ">> Launching sender and transfering"
 ./sender ::1 1234 -f in.dat
 
@@ -104,8 +97,7 @@ else
 	fi
 fi
 
-echo ">> Well done, you passed the test."
-echo ">> Cleaning behind"
+echo ">> OK for checksums verification !"
 echo "-- Test succeeded --"
-rm -f in.dat && rm -f out.dat
+rm -f in.dat out.dat
 exit 0;
