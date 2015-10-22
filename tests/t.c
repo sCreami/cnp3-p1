@@ -46,8 +46,7 @@ void test_encode()
 }
 
 /*
- * done : valid input
- * soon : bad crc, incoherent length, no payload, large window, wtf type
+ * valid input, bad crc, incoherent length, cut, wrong type
  */
 void test_decode()
 {
@@ -56,17 +55,23 @@ void test_decode()
     char * payload;
     pkt_status_code status;
 
+    /*building encoded packet*/
+
     char input[16] = {49, 42, 0, 5, 49, 50, 51, 52, 53, 0, 0, 0, 0, 0, 0, 0};
     uint32_t crc = crc32(0, input, 12);
     crc = htobe32(crc);
 
     memcpy(input + 12, &crc, 4);
 
+    /*building ressources*/
+
     length = 16;
     pkt = pkt_new();
     payload  = "12345\0\0\0";
 
     CU_ASSERT_NOT_EQUAL(pkt, NULL);
+
+    /*testing result for valid input*/
 
     status = pkt_decode(input, length, pkt);
 
@@ -75,8 +80,61 @@ void test_decode()
     CU_ASSERT_EQUAL(pkt_get_type(pkt), PTYPE_DATA);
     CU_ASSERT_EQUAL(pkt_get_window(pkt), 17);
     CU_ASSERT_EQUAL(pkt_get_seqnum(pkt), 42);
-    CU_ASSERT_EQUAL(pkt_get_length(pkt), 5); //Only the result of encode for valid input is tested here.
+    CU_ASSERT_EQUAL(pkt_get_length(pkt), 5);
     CU_ASSERT_EQUAL(strncmp(pkt_get_payload(pkt), payload, 8), 0);
+
+    /*testing result for invalid crc*/
+
+    input[14]++;
+    crc = crc32(0, input, 12);
+    crc = htobe32(crc);
+    status = pkt_decode(input, length, pkt);
+
+    CU_ASSERT_NOT_EQUAL(status, PKT_OK);
+
+    /*testing result for incoherent length*/
+
+    input[14]--;
+    input[3] = 0b0011;
+    crc = crc32(0, input, 12);
+    crc = htobe32(crc);
+    status = pkt_decode(input, length, pkt);
+
+    CU_ASSERT_NOT_EQUAL(status, PKT_OK);
+
+    /*testing result for cut pkt (no payload nor crc)*/
+
+    input[3] = 0b0101;
+    crc = crc32(0, input, 12);
+    crc = htobe32(crc);
+    status = pkt_decode(input, 4, pkt);
+
+    CU_ASSERT_NOT_EQUAL(status, PKT_OK);
+
+    CU_ASSERT_EQUAL(pkt_get_type(pkt), PTYPE_DATA);
+    CU_ASSERT_EQUAL(pkt_get_window(pkt), 17);
+    CU_ASSERT_EQUAL(pkt_get_seqnum(pkt), 42);
+    CU_ASSERT_EQUAL(pkt_get_length(pkt), 5);
+
+    /*testing for invalid type*/
+
+    input[0] = 0b11110001;
+    crc = crc32(0, input, 12);
+    crc = htobe32(crc);
+    status = pkt_decode(input, 4, pkt);
+
+    CU_ASSERT_NOT_EQUAL(status, PKT_OK);
+
+    /*testing for PTYPE_ACK with payload*/
+
+    input[0] = 0b01010001;
+    crc = crc32(0, input, 12);
+    crc = htobe32(crc);
+    status = pkt_decode(input, 4, pkt);
+
+    CU_ASSERT_NOT_EQUAL(status, PKT_OK);
+
+    pkt_del(pkt);
 }
 
 int main(void)
