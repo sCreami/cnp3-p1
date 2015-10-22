@@ -85,10 +85,16 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
         {
             locales.seqnum = (locales.seqnum + 1) % 256;
 
+            if (!pkt->length && !pkt->payload)
+            {
+                pkt_del(pkt);
+                return 1;
+            }
+
             if (write(fd, pkt->payload, pkt->length) == -1) {
                 perror("write");
                 pkt_del(pkt);
-                return 1;
+                return -1;
             }
         }
 
@@ -147,10 +153,10 @@ int receive_data(void)
     pkt_t *pkt;
     fd_set rfds;
     struct timeval tv;
-    int ofd, read_size;
     char buffer[LENGTH];
     pkt_t *reception_window[32];
     pkt_status_code decode_status;
+    int ofd, read_size, write_status;
 
     ofd = (locales.filename ? open(locales.filename, O_WRONLY | O_CREAT |
            O_TRUNC, 0644) : fileno(stdout));
@@ -209,26 +215,22 @@ int receive_data(void)
                     return 0;
                 }
 
-                if (write_in_seq_pkt(ofd, reception_window)) {
+                write_status = write_in_seq_pkt(ofd, reception_window);
+
+                if (write_status == -1) {
                     perror("write_in_seq_pkt");
                     close(ofd);
                     return 0;
                 }
+
+                if (write_status)
+                    break;
 
                 send_control_pkt(PTYPE_ACK);
             }
             else
             {
                 send_control_pkt(PTYPE_NACK);
-            }
-        }
-        else
-        {
-            // assuming -1 is EOF after 2 sec of waiting packets
-            if (recv(locales.sockfd, buffer,
-                sizeof(buffer), MSG_PEEK | MSG_DONTWAIT) == -1) {
-            close(ofd);
-            return 1;
             }
         }
     }
