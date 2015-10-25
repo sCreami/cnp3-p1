@@ -39,14 +39,83 @@ void print_locales(void)
                     (locales.filename ? locales.filename : "stdin"));
 }
 
-pkt_t * withdraw_pkt(pkt_t *buffer[32], int seqnum)
+/*TO PRINT DATA*/
+
+void print_warning(char * type, int value)
 {
-    pkt_t *pkt;
+    if (locales.verbose)
+        fprintf(stderr, "["KYEL" warn "KNRM"] %s\t%d\n", type, value);
+}
+
+void print_pkt_buffer(pkt_t *buffer[32])
+{
+    int i;
+
+    if (!locales.verbose)
+        return;
+
+    for (i = 0; i < 32; i++)
+    {
+        if (i != 0 && !(i % 8))
+            fprintf(stderr, "\n");
+
+        if (buffer[i])
+            fprintf(stderr, "%d\t", buffer[i]->seqnum);
+        else
+            fprintf(stderr, ".\t");
+    }
+
+    printf("\n");
+}
+
+/*UTIL*/
+
+void clean_seqnum(int *seqnum)
+{
+    if (*seqnum < 0)
+        *seqnum += 256;
+}
+
+long update_timeval(struct timeval *time)
+{
+    struct timeval current;
+    long sec, usec;
+
+    gettimeofday(&current, NULL);
+
+    sec = current.tv_sec - time->tv_sec;
+    usec = current.tv_usec - time->tv_usec;
+
+    memcpy(time, &current, sizeof(struct timeval));
+
+    return sec * 1000 * 1000 + usec;
+}
+
+/*FOR PKT_BUFFER USE*/
+
+int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
+{
     int i;
 
     for (i = 0; i < 32; i++)
-        if (buffer[i] != NULL && buffer[i]->seqnum == seqnum)
-        {
+        if (!buffer[i]) {
+            locales.window--;
+            buffer[i] = pkt;
+            return 0;
+        }
+
+    return 1;
+}
+
+pkt_t *withdraw_pkt(pkt_t *buffer[32], int seqnum)
+{
+    int i;
+    pkt_t *pkt;
+
+    clean_seqnum(&seqnum);
+
+    for (i = 0; i < 32; i++)
+        if (buffer[i] && buffer[i]->seqnum == seqnum) {
             locales.window++;
             pkt = buffer[i];
             buffer[i] = NULL;
@@ -56,54 +125,64 @@ pkt_t * withdraw_pkt(pkt_t *buffer[32], int seqnum)
     return NULL;
 }
 
-int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
+pkt_t *peek_pkt(pkt_t *buffer[32], int seqnum)
 {
     int i;
 
+    clean_seqnum(&seqnum);
+
     for (i = 0; i < 32; i++)
-        if (buffer[i] ==  NULL)
-        {
-            locales.window--;
-            buffer[i] = pkt;
-            return 0;
+        if (buffer[i] && buffer[i]->seqnum == seqnum)
+            return buffer[i];
+
+    return NULL;
+}
+
+int remove_pkt(pkt_t *buffer[32], int seqnum)
+{
+    int i;
+
+    clean_seqnum(&seqnum);
+
+    for (i = 0; i < 32; i++)
+        if (buffer[i] && buffer[i]->seqnum == seqnum) {
+            locales.window++;
+            pkt_del(buffer[i]);
+            buffer[i] = NULL;
+            return 1;
         }
 
-    return 1;
+    return 0;
+}
+
+void drop_pkt(pkt_t *buffer[32], int seqnum)
+{
+    if (remove_pkt(buffer, seqnum))
+        drop_pkt(buffer, seqnum - 1);
 }
 
 void free_pkt_buffer(pkt_t *buffer[32])
 {
     int i;
 
-    for  (i = 0; i < 32; i++)
+    for (i = 0; i < 32; i++)
         pkt_del(buffer[i]);
 
-    locales.window = 31;
-}
-
-void drop_pkt(pkt_t *buffer[32], int seqnum)
-{
-    pkt_t * pkt;
-
-    if (seqnum < 0)
-        seqnum += 256;
-
-    pkt = withdraw_pkt(buffer, seqnum);
-
-    if (pkt) {
-        drop_pkt(buffer, seqnum - 1);
-        pkt_del(pkt);
-    }
+    bzero(buffer, 32 * sizeof(pkt_t *));
 }
 
 int is_buffer_empty(pkt_t *buffer[32])
 {
     int i;
+
     for (i = 0; i < 32; i++)
         if (buffer[i])
             return 0;
+
     return 1;
 }
+
+/*FOR TRANSMISSION*/
 
 int send_pkt(pkt_t *buffer[32], int seqnum)
 {
@@ -111,19 +190,14 @@ int send_pkt(pkt_t *buffer[32], int seqnum)
     size_t length;
     pkt_t *pkt;
 
-    if (seqnum < 0)
-        seqnum += 256;
+    clean_seqnum(&seqnum);
 
-    pkt = withdraw_pkt(buffer, seqnum);
-    store_pkt(buffer, pkt);
+    pkt = peek_pkt(buffer, seqnum);
     length = 520;
 
     if (!pkt) {
-        if (locales.verbose)
-            fprintf(stderr, "["KRED" error"KNRM"] pkt with seqnum %d doesn't "
-                    "exist\n", seqnum);
-
-        perror("withdraw_pkt");
+        print_pkt_buffer(buffer);
+        print_warning("NSP", seqnum);
         return 0;
     }
 
@@ -140,165 +214,124 @@ int send_pkt(pkt_t *buffer[32], int seqnum)
     return 0;
 }
 
-long get_elapsed_time(struct timeval *start, struct timeval *end)
+int receive_pkt(pkt_t *buffer[32], struct timeval *time, uint8_t *last_ack)
 {
-    long sec = end->tv_sec - start->tv_sec;
-    long usec = end->tv_usec - start->tv_usec;
+    static char buf[520];
+    pkt_t *pkt;
 
-    long result = sec * 1000 + usec / 1000;
+    if (recv(locales.sockfd, buf, 8, MSG_DONTWAIT) == -1) {
+        perror("recv");
+        return 1;
+    }
 
-    return result;
+    pkt = pkt_new();
+
+    if (pkt_decode(buf, 8, pkt) != PKT_OK)
+    {
+        print_warning("CORR", -1);
+    }
+    else
+    {
+        update_timeval(time);
+
+        switch (pkt->type)
+        {
+            case PTYPE_ACK :
+            print_warning("ACK", pkt->seqnum);
+            drop_pkt(buffer, pkt->seqnum - 1);
+            *last_ack = pkt->seqnum;
+            break;
+
+            case PTYPE_NACK :
+            print_warning("NACK", pkt->seqnum);
+            send_pkt(buffer, pkt->seqnum);
+            break;
+        }
+    }
+
+    pkt_del(pkt);
+
+    return 0;
 }
-
-#define LENGTH 4 + 512 + 4
 
 int perform_transfer(void)
 {
+    int ofd;
     pkt_t *pkt;
     fd_set rfds;
-    char buffer[520];
-    struct timeval tv;
-    pkt_t *pkt_archives[32];
-    int receiver_window, last_ack;
-    int ofd, read_size, recv_size;
+    double delay;
+    char buf[512];
+    uint8_t last_ack;
+    ssize_t read_size;
+    pkt_t *pkt_buffer[32];
+    struct timeval time, d_time;
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
-    bzero(pkt_archives, 32 * sizeof(pkt_t *));
-
-    if (ofd == -1) {
-        perror("open");
-        return 0;
-    }
-
-    tv = (struct timeval) {
-        .tv_sec  = 0,
-        .tv_usec = 500,
-    };
-    last_ack = 0;
+    bzero(pkt_buffer, 32 * sizeof(pkt_t *));
+    update_timeval(&time);
     read_size = 1;
-    receiver_window = 31;
-
-    if (locales.verbose)
-        fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
+    last_ack = 0;
+    delay = 0;
 
     for (;;)
     {
-        if (locales.window && receiver_window && read_size)
+        if (locales.window && read_size)
         {
-            read_size = read(ofd, buffer, 512);
+            read_size = read(ofd, buf, 512);
 
-            if (read_size < 0) {
-                free_pkt_buffer(pkt_archives);
+            if (read_size == -1) {
+                free_pkt_buffer(pkt_buffer);
                 perror("read");
                 close(ofd);
                 return 0;
             }
 
             pkt = pkt_build(PTYPE_DATA, locales.window, locales.seqnum,
-                            read_size, buffer);
+                            (size_t)read_size, buf);
 
-            if (!pkt) {
-                free_pkt_buffer(pkt_archives);
-                perror("pkt_build");
+            store_pkt(pkt_buffer, pkt);
+
+            if (send_pkt(pkt_buffer, locales.seqnum)) {
+                free_pkt_buffer(pkt_buffer);
                 close(ofd);
                 return 0;
             }
-            gettimeofday(&pkt->tv, NULL);
 
             locales.seqnum = (locales.seqnum + 1) % 256;
-            store_pkt(pkt_archives, pkt);
+        }
 
-            if (send_pkt(pkt_archives, locales.seqnum - 1)) {
-                free_pkt_buffer(pkt_archives);
-                perror("send_pkt");
-                close(ofd);
-                return 0;
-            }
-        }
-        else if (!read_size && is_buffer_empty(pkt_archives))
-        {
+        if (!read_size && is_buffer_empty(pkt_buffer))
             break;
-        }
 
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
 
-        if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) == -1) {
-            free_pkt_buffer(pkt_archives);
-            perror("select");
-            close(ofd);
-            return 0;
-        }
+        if (delay)
+            delay = 0.5 * delay + 0.5 * update_timeval(&time);
+        else
+            delay = update_timeval(&time);
 
-        if (FD_ISSET(locales.sockfd, &rfds)) {
+        d_time = (struct timeval)
+        {
+            .tv_sec = 0,
+            .tv_usec = (long)delay
+        };
 
-            recv_size  = recv(locales.sockfd, buffer,
-                              sizeof(buffer), MSG_DONTWAIT);
+        select(FD_SETSIZE, &rfds, NULL, NULL, &d_time);
 
-            if (recv_size < 0) {
-                free_pkt_buffer(pkt_archives);
-                if (read_size == 0)
-                    break;
-                perror("recv");
+        if (FD_ISSET(locales.sockfd, &rfds))
+        {
+            if (receive_pkt(pkt_buffer, &time, &last_ack)) {
+                free_pkt_buffer(pkt_buffer);
                 close(ofd);
                 return 0;
             }
-
-            pkt = pkt_new();
-
-            if (!pkt) {
-                free_pkt_buffer(pkt_archives);
-                perror("pkt_new");
-                close(ofd);
-                return 0;
-            }
-
-            if (pkt_decode(buffer, (size_t) recv_size, pkt) == PKT_OK)
-            {
-                receiver_window = pkt->window;
-
-                switch (pkt->type)
-                {
-                    case PTYPE_ACK:
-                        if (last_ack != pkt->seqnum)
-                            last_ack = pkt->seqnum;
-                        else
-                            send_pkt(pkt_archives, pkt->seqnum);
-
-                        drop_pkt(pkt_archives, pkt->seqnum - 1);
-                        /*if (locales.verbose)
-                            fprintf(stderr, "["KYEL" warn "KNRM"] received ACK "
-                                    "for pkt %d\n", (int) pkt->seqnum);*/
-                        break;
-
-                    case PTYPE_NACK:
-                        send_pkt(pkt_archives, pkt->seqnum);
-                        if (locales.verbose)
-                            fprintf(stderr, "["KYEL" warn "KNRM"] received NACK"
-                                    " for pkt %d\n",
-                                    (int) pkt->seqnum);
-                        break;
-
-                    default:
-                        if (locales.verbose)
-                            fprintf(stderr, "["KYEL" warn "KNRM"] receiver"
-                                    "shouldn't send data\n");
-                        break;
-                }
-            }
-
-            pkt_del(pkt);
         }
-
-        struct timeval current_time;
-        gettimeofday(&current_time, NULL);
-
-        for (int i = 0; i < 32; i++)
-            if (pkt_archives[i] && get_elapsed_time(&pkt_archives[i]->tv, &current_time) > 500)
-            {
-                pkt_archives[i]->tv = current_time;
-                send_pkt(pkt_archives, pkt_archives[i]->seqnum);
-            }
+        else
+        {
+            send_pkt(pkt_buffer, last_ack);
+            print_warning("TIME", (int)delay);
+        }
     }
 
     if (locales.verbose)
@@ -312,10 +345,10 @@ int perform_transfer(void)
         return 0;
     }
 
+    //info
+
     return 1;
 }
-
-#undef LENGTH
 
 int main(int argc, char **argv)
 {
