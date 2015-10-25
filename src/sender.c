@@ -246,6 +246,10 @@ int receive_pkt(pkt_t *buffer[32], struct timeval *time, uint8_t *last_ack)
             print_warning("NACK", pkt->seqnum);
             send_pkt(buffer, pkt->seqnum);
             break;
+
+            default :
+            print_warning("INV", pkt->seqnum);
+            break;
         }
     }
 
