@@ -223,8 +223,12 @@ int receive_data(void)
                 print_warning("NACK", pkt->seqnum);
                 send_control_pkt(PTYPE_NACK, pkt->seqnum);
             }
+
+            pkt_del(pkt);
         }
     }
+
+    pkt_del(pkt);
 
     if (locales.verbose)
         fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
