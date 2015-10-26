@@ -40,37 +40,63 @@ void print_locales(void)
                     locales.passive);
 }
 
-pkt_t * withdraw_pkt(pkt_t *buffer[32], int i)
-{
-    if (buffer[i] == NULL)
-        return NULL; // and print something ?
+/*TO PRINT DATA*/
 
-    pkt_t * result = buffer[i];
+void print_warning(char * type, int value)
+{
+    if (locales.verbose)
+        fprintf(stderr, "["KYEL" warn "KNRM"] %s\t%d\n", type, value);
+}
+
+/*FOR PKT_BUFFER USE*/
+
+pkt_t *withdraw_pkt(pkt_t *buffer[32], int index)
+{
+    pkt_t *pkt;
+
+    if (!buffer[index])
+        return NULL;
+
+    pkt = buffer[index];
     locales.window++;
-    buffer[i] = NULL;
-    return result;
+    buffer[index] = NULL;
+
+    return pkt;
 }
 
 int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
 {
-    int seqnum_diff;
+    int diff;
 
-    seqnum_diff = pkt->seqnum - locales.seqnum;
+    diff = pkt->seqnum - locales.seqnum;
 
-    if (seqnum_diff < 0 || seqnum_diff > 31)
+    if (diff < 0 || diff >= 32 || buffer[diff])
     {
         pkt_del(pkt);
-        return 0;
+
+        if (buffer[diff])
+            return 1;
+        else
+            return 0;
     }
 
-    if (buffer[seqnum_diff] != NULL)
-        return 1;
-
     locales.window--;
-    buffer[seqnum_diff] = pkt;
+    buffer[diff] = pkt;
 
     return 0;
 }
+
+void free_pkt_buffer(pkt_t *buffer[32])
+{
+    int i;
+
+    for (i = 0; i < 32; i++)
+        pkt_del(buffer[i]);
+
+    bzero(buffer, 32 * sizeof(pkt_t *));
+}
+
+/*FOR TRANSMISSION*/
 
 int write_in_seq_pkt(int fd, pkt_t *buffer[32])
 {
@@ -81,30 +107,28 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
     {
         pkt = withdraw_pkt(buffer, i);
 
-        if (pkt && pkt->seqnum == locales.seqnum)
+        if (!pkt || pkt->seqnum - locales.seqnum)
         {
-            locales.seqnum = (locales.seqnum + 1) % 256;
+            pkt_del(pkt);
+            return 0;
+        }
 
-            if (!pkt->length && !pkt->payload)
-            {
-                pkt_del(pkt);
-                return 1;
-            }
+        locales.seqnum = (locales.seqnum + 1) % 256;
 
-            if (write(fd, pkt->payload, pkt->length) == -1) {
-                perror("write");
-                pkt_del(pkt);
-                return -1;
-            }
+        if (!pkt->length && !pkt->payload)
+        {
+            pkt_del(pkt);
+            return 1;
+        }
+
+        if (write(fd, pkt->payload, pkt->length) == -1) {
+            perror("write");
+            pkt_del(pkt);
+            return -1;
         }
 
         pkt_del(pkt);
     }
-
-    /*
-     * if more than 1 pkt has been sent, then content of the buffer is moved to
-     * the left.
-     */
 
     if (locales.window < 31)
     {
@@ -115,52 +139,39 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
     return 0;
 }
 
-int send_control_pkt(ptypes_t type)
+int send_control_pkt(ptypes_t type, uint8_t seqnum)
 {
-    char buffer[8];
+    static char buf[8];
     size_t length;
-    pkt_t * pkt;
+    pkt_t *pkt;
 
-    pkt = pkt_build(type, locales.window, locales.seqnum, 0, NULL);
+    pkt = pkt_build(type, locales.window, seqnum, 0, NULL);
+
+    if (!pkt)
+        return 1;
+
     length = 8;
 
-    if (!pkt) {
-        perror("pkt_build");
-        return 1;
-    }
-
-    if (pkt_encode(pkt, buffer, &length) != PKT_OK) {
-        perror("pkt_encode");
-        pkt_del(pkt);
-        return 1;
-    }
-
-    if (send(locales.sockfd, buffer, length, 0) == -1) {
-        perror("send");
-        pkt_del(pkt);
-        return 1;
-    }
-
+    pkt_encode(pkt, buf, &length);
+    send(locales.sockfd, buf, length, 0);
     pkt_del(pkt);
 
     return 0;
 }
 
-#define LENGTH 4 + 512 + 4
-
 int receive_data(void)
 {
     pkt_t *pkt;
     fd_set rfds;
-    struct timeval tv;
-    char buffer[LENGTH];
-    pkt_t *reception_window[32];
-    pkt_status_code decode_status;
-    int ofd, read_size, write_status;
+    char buf[520];
+    ssize_t recv_size;
+    struct timeval time;
+    pkt_t *pkt_buffer[32];
+    int ofd, write_status;
 
-    ofd = (locales.filename ? open(locales.filename, O_WRONLY | O_CREAT |
-           O_TRUNC, 0644) : fileno(stdout));
-    bzero(reception_window, 32 * sizeof(pkt_t *));
+    bzero(pkt_buffer, 32 * sizeof(pkt_t *));
+    ofd = (locales.filename ? open(locales.filename,
+            O_WRONLY | O_CREAT | O_TRUNC, 0644) : fileno(stdout));
 
     if (ofd == -1) {
         perror("open");
@@ -172,65 +183,45 @@ int receive_data(void)
 
     for (;;)
     {
-        tv = (struct timeval) {
-            .tv_sec  = 2, // should be enough to
-            .tv_usec = 0, // retrieve all packets
-        };
-
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
 
-        if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) == -1) {
-            perror("select");
-            close(ofd);
-            return 0;
-        }
+        time = (struct timeval)
+        {
+            .tv_sec = 1,
+            .tv_usec = 0
+        };
+
+        select(FD_SETSIZE, &rfds, NULL, NULL, &time);
 
         if (FD_ISSET(locales.sockfd, &rfds))
         {
-            read_size  = recv(locales.sockfd, buffer,
-                              sizeof(buffer), MSG_DONTWAIT);
-
-            if (read_size == -1) {
-                perror("recv");
-                close(ofd);
-                return 0;
-            }
+            recv_size = recv(locales.sockfd, buf, 520, MSG_DONTWAIT);
 
             pkt = pkt_new();
 
-            if (!pkt) {
-                perror("pkt_new");
-                close(ofd);
-                return 0;
-            }
-
-            decode_status = pkt_decode(buffer, (size_t) read_size, pkt);
-
-            if (decode_status == PKT_OK)
+            if (pkt_decode(buf, (size_t)recv_size, pkt) == PKT_OK)
             {
-                if (store_pkt(reception_window, pkt)) {
-                    perror("store_pkt");
-                    close(ofd);
-                    return 0;
-                }
+                print_warning("REC", pkt->seqnum);
 
-                write_status = write_in_seq_pkt(ofd, reception_window);
+                store_pkt(pkt_buffer, pkt);
+
+                write_status = write_in_seq_pkt(ofd, pkt_buffer);
 
                 if (write_status == -1) {
-                    perror("write_in_seq_pkt");
-                    close(ofd);
+                    free_pkt_buffer(pkt_buffer);
                     return 0;
                 }
 
-                send_control_pkt(PTYPE_ACK);
+                send_control_pkt(PTYPE_ACK, locales.seqnum);
 
                 if (write_status)
                     break;
             }
             else
             {
-                send_control_pkt(PTYPE_NACK);
+                print_warning("NACK", pkt->seqnum);
+                send_control_pkt(PTYPE_NACK, pkt->seqnum);
             }
         }
     }
@@ -248,8 +239,6 @@ int receive_data(void)
 
     return 1;
 }
-
-#undef LENGTH
 
 int main(int argc, char **argv)
 {
