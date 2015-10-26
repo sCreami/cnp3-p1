@@ -212,7 +212,6 @@ int receive_data(void)
                     return 0;
                 }
 
-                pkt_del(pkt);
                 send_control_pkt(PTYPE_ACK, locales.seqnum);
 
                 if (write_status)
@@ -238,6 +237,7 @@ int receive_data(void)
         return 0;
     }
 
+    free_pkt_buffer(pkt_buffer);
     return 1;
 }
 
