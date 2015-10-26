@@ -83,7 +83,7 @@ long update_timeval(struct timeval *time)
 
     gettimeofday(&current, NULL);
 
-    sec = current.tv_sec - time->tv_sec;
+    sec  = current.tv_sec  - time->tv_sec;
     usec = current.tv_usec - time->tv_usec;
 
     memcpy(time, &current, sizeof(struct timeval));
@@ -305,9 +305,8 @@ int perform_transfer(void)
         else
             delay = update_timeval(&time);
 
-        d_time = (struct timeval)
-        {
-            .tv_sec = 0,
+        d_time = (struct timeval) {
+            .tv_sec  = 0,
             .tv_usec = (long)delay
         };
 
@@ -338,8 +337,6 @@ int perform_transfer(void)
         perror("shutdown");
         return 0;
     }
-
-    //info
 
     return 1;
 }

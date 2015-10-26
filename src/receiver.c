@@ -186,10 +186,9 @@ int receive_data(void)
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
 
-        time = (struct timeval)
-        {
-            .tv_sec = 1,
-            .tv_usec = 0
+        time = (struct timeval) {
+            .tv_sec  = 1,
+            .tv_usec = 0,
         };
 
         select(FD_SETSIZE, &rfds, NULL, NULL, &time);
@@ -213,6 +212,7 @@ int receive_data(void)
                     return 0;
                 }
 
+                pkt_del(pkt);
                 send_control_pkt(PTYPE_ACK, locales.seqnum);
 
                 if (write_status)
@@ -220,15 +220,12 @@ int receive_data(void)
             }
             else
             {
+                pkt_del(pkt);
                 print_warning("NACK", pkt->seqnum);
                 send_control_pkt(PTYPE_NACK, pkt->seqnum);
             }
-
-            pkt_del(pkt);
         }
     }
-
-    pkt_del(pkt);
 
     if (locales.verbose)
         fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
