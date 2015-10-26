@@ -21,12 +21,12 @@ dd if=/dev/urandom bs=400000 count=250 of=in.dat 2> /dev/null
 CHECKSUM=`openssl sha1 in.dat`
 
 echo "[`date +"%M:%S"`] Launching receiver"
-timeout 122 ./receiver :: 64341 -f out.dat &
+timeout 302 ./receiver :: 64341 -f out.dat &
 PIDRECV=$!
 
 sleep 2
 echo "[`date +"%M:%S"`] Launching sender and transfering"
-timeout 120 ./sender ::1 64341 -f in.dat
+timeout 300 ./sender ::1 64341 -f in.dat
 
 if [ "$?" != 0 ]; then
     echo "[`date +"%M:%S"`] sender failed with exit code $?"
@@ -65,15 +65,15 @@ if [ "$?" != 0 ]; then
     exit 1;
 fi
 
-timeout 242 ./tests/linksim/link_sim -p 1234 -P 4321 -d 500 -j 500 -e 5 -c 5 -l 5 > /dev/null &
+timeout 302 ./tests/linksim/link_sim -p 1234 -P 4321 -d 500 -j 500 -e 5 -c 5 -l 5 > /dev/null &
 
 echo "[`date +"%M:%S"`] Launching receiver"
-timeout 242 ./receiver :: 4321 -f out.dat &
+timeout 302 ./receiver :: 4321 -f out.dat &
 PIDRECV=$!
 
 sleep 2
 echo "[`date +"%M:%S"`] Launching sender and transfering"
-timeout 240 ./sender ::1 1234 -f in.dat
+timeout 300 ./sender ::1 1234 -f in.dat
 
 if [ "$?" != 0 ]; then
     echo "[`date +"%M:%S"`] sender failed with exit code $?"

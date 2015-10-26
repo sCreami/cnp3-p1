@@ -9,7 +9,7 @@ CLFLAGS = -L$(HOME)/local/lib -lcunit
 SRC := $(foreach ssrc, src, $(wildcard $(ssrc)/*.c))
 OBJ := $(SRC:.c=.o)
 
-.PHONY: test clean
+.PHONY: tests clean
 
 all: receiver sender
 
@@ -19,7 +19,7 @@ receiver: src/receiver.o src/socket.o src/packet.o
 sender: src/sender.o src/socket.o src/packet.o
 	$(CC) $^ -o $@ $(LFLAGS)
 
-test:
+tests:
 	@$(MAKE) cunit > /dev/null
 	LD_LIBRARY_PATH=$(HOME)/local/lib ./test
 	@$(MAKE) all > /dev/null
