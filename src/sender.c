@@ -107,24 +107,6 @@ int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
     return 1;
 }
 
-pkt_t *withdraw_pkt(pkt_t *buffer[32], int seqnum)
-{
-    int i;
-    pkt_t *pkt;
-
-    clean_seqnum(&seqnum);
-
-    for (i = 0; i < 32; i++)
-        if (buffer[i] && buffer[i]->seqnum == seqnum) {
-            locales.window++;
-            pkt = buffer[i];
-            buffer[i] = NULL;
-            return pkt;
-        }
-
-    return NULL;
-}
-
 pkt_t *peek_pkt(pkt_t *buffer[32], int seqnum)
 {
     int i;
@@ -276,6 +258,14 @@ int perform_transfer(void)
     read_size = 1;
     last_ack = 0;
     delay = 0;
+
+    if (ofd == -1) {
+        perror("open");
+        return 0;
+    }
+
+    if (locales.verbose)
+        fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
     for (;;)
     {
