@@ -219,19 +219,19 @@ int receive_pkt(pkt_t *buffer[32], struct timeval *time, uint8_t *last_ack)
         switch (pkt->type)
         {
             case PTYPE_ACK :
-            print_warning("ACK", pkt->seqnum);
-            drop_pkt(buffer, pkt->seqnum - 1);
-            *last_ack = pkt->seqnum;
-            break;
+                print_warning("ACK", pkt->seqnum);
+                drop_pkt(buffer, pkt->seqnum - 1);
+                *last_ack = pkt->seqnum;
+                break;
 
             case PTYPE_NACK :
-            print_warning("NACK", pkt->seqnum);
-            send_pkt(buffer, pkt->seqnum);
-            break;
+                print_warning("NACK", pkt->seqnum);
+                send_pkt(buffer, pkt->seqnum);
+                break;
 
             default :
-            print_warning("INV", pkt->seqnum);
-            break;
+                print_warning("INV", pkt->seqnum);
+                break;
         }
     }
 
