@@ -125,15 +125,6 @@ void test_decode()
 
     CU_ASSERT_NOT_EQUAL(status, PKT_OK);
 
-    /*testing for PTYPE_ACK with payload*/
-
-    input[0] = 0b01010001;
-    crc = crc32(0, input, 12);
-    crc = htobe32(crc);
-    status = pkt_decode(input, 4, pkt);
-
-    CU_ASSERT_NOT_EQUAL(status, PKT_OK);
-
     pkt_del(pkt);
 }
 

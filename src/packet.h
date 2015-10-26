@@ -54,10 +54,6 @@ typedef struct __attribute__((__packed__)) pkt
     /* Content */
 
     char *   payload;
-
-    /* Util */
-
-    struct timeval tv;
 } pkt_t;
 
 /* Creates a new struct pkt and allows to initialize it's fields
