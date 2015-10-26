@@ -68,7 +68,7 @@ fi
 ./tests/linksim/link_sim -p 1234 -P 4321 -d 500 -j 500 -e 5 -c 5 -l 5 > /dev/null &
 
 echo ">> Launching receiver"
-timeout 24° ./receiver :: 4321 -f out.dat &
+timeout 240 ./receiver :: 4321 -f out.dat &
 PIDRECV=$!
 
 sleep 2
