@@ -88,9 +88,7 @@ int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
 
 void free_pkt_buffer(pkt_t *buffer[32])
 {
-    int i;
-
-    for (i = 0; i < 32; i++)
+    for (int i = 0; i < 32; i++)
         pkt_del(buffer[i]);
 
     bzero(buffer, 32 * sizeof(pkt_t *));
@@ -100,23 +98,21 @@ void free_pkt_buffer(pkt_t *buffer[32])
 
 int write_in_seq_pkt(int fd, pkt_t *buffer[32])
 {
-    pkt_t *pkt;
     int i;
+    pkt_t *pkt;
 
-    for (i = 0; i < 32; i++)
-    {
+    for (i = 0; i < 32; i++) {
+
         pkt = withdraw_pkt(buffer, i);
 
-        if (!pkt || pkt->seqnum - locales.seqnum)
-        {
+        if (!pkt || pkt->seqnum - locales.seqnum) {
             pkt_del(pkt);
             return 0;
         }
 
         locales.seqnum = (locales.seqnum + 1) % 256;
 
-        if (!pkt->length && !pkt->payload)
-        {
+        if (!pkt->length && !pkt->payload) {
             pkt_del(pkt);
             return 1;
         }
@@ -130,8 +126,7 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
         pkt_del(pkt);
     }
 
-    if (locales.window < 31)
-    {
+    if (locales.window < 31) {
         memcpy(buffer, &buffer[i], 32 - i);
         memset(&buffer[i], 0, i);
     }

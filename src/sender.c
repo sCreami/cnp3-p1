@@ -95,9 +95,7 @@ long update_timeval(struct timeval *time)
 
 int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
 {
-    int i;
-
-    for (i = 0; i < 32; i++)
+    for (int i = 0; i < 32; i++)
         if (!buffer[i]) {
             locales.window--;
             buffer[i] = pkt;
@@ -109,11 +107,9 @@ int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
 
 pkt_t *peek_pkt(pkt_t *buffer[32], int seqnum)
 {
-    int i;
-
     clean_seqnum(&seqnum);
 
-    for (i = 0; i < 32; i++)
+    for (int i = 0; i < 32; i++)
         if (buffer[i] && buffer[i]->seqnum == seqnum)
             return buffer[i];
 
@@ -122,11 +118,9 @@ pkt_t *peek_pkt(pkt_t *buffer[32], int seqnum)
 
 int remove_pkt(pkt_t *buffer[32], int seqnum)
 {
-    int i;
-
     clean_seqnum(&seqnum);
 
-    for (i = 0; i < 32; i++)
+    for (int i = 0; i < 32; i++)
         if (buffer[i] && buffer[i]->seqnum == seqnum) {
             locales.window++;
             pkt_del(buffer[i]);
@@ -145,9 +139,7 @@ void drop_pkt(pkt_t *buffer[32], int seqnum)
 
 void free_pkt_buffer(pkt_t *buffer[32])
 {
-    int i;
-
-    for (i = 0; i < 32; i++)
+    for (int i = 0; i < 32; i++)
         pkt_del(buffer[i]);
 
     bzero(buffer, 32 * sizeof(pkt_t *));
@@ -155,9 +147,7 @@ void free_pkt_buffer(pkt_t *buffer[32])
 
 int is_buffer_empty(pkt_t *buffer[32])
 {
-    int i;
-
-    for (i = 0; i < 32; i++)
+    for (int i = 0; i < 32; i++)
         if (buffer[i])
             return 0;
 
@@ -307,7 +297,7 @@ int perform_transfer(void)
 
         d_time = (struct timeval) {
             .tv_sec  = 0,
-            .tv_usec = (long)delay
+            .tv_usec = (long) delay
         };
 
         select(FD_SETSIZE, &rfds, NULL, NULL, &d_time);
