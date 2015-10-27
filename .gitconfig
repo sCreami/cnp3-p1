@@ -1,6 +1,0 @@
-[filter "tabspace"]
-    clean  = gexpand -t 4 -i && expand -t 4 -i
-    smudge = gunexpand -t 4 --first-only && unexpand -t 4 --first-only
-    required
-[merge]
-    renormalize = true
