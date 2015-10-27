@@ -20,12 +20,15 @@ int real_address(const char *address, struct sockaddr_in6 *rval, int flag)
 
     // used by argpars to check
     // for address in args
-    if (flag)
+    if (flag) {
+        freeaddrinfo(res);
         return !status;
+    }
 
     if (status) {
         if (locales.verbose)
             fprintf(stderr, "%s\n", gai_strerror(status));
+        freeaddrinfo(res);
         return 1;
     }
 
