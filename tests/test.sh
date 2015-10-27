@@ -6,19 +6,11 @@ echo "# LINGI 1341 Project Testing Script #"
 echo "#       -- 26 October 2015 --       #"
 echo "#####################################"
 
-# Check if OpenSSL is installed 
-openssl sha1 /dev/stdout > /dev/null
-if [ "$?" != 0 ]; then
-    echo ">> OpenSSL not available"
-    echo "-- Test failed --"
-    exit 1;
-fi
-
-# Thus running sender-receiver
+# Running sender-receiver
 # for their checksum.
 echo "[`date +"%M:%S"`] Generating a 100MB file"
 dd if=/dev/urandom bs=400000 count=250 of=in.dat 2> /dev/null
-CHECKSUM=`openssl sha1 in.dat`
+CHECKSUM=`sha256sum in.dat`
 
 echo "[`date +"%M:%S"`] Launching receiver"
 timeout 302 ./receiver :: 64341 -f out.dat &
@@ -39,8 +31,8 @@ else
         echo "-- Test failed --"
         exit 1;
     else
-        SHA1A=`echo $CHECKSUM | awk -F' ' '{print $2}'`
-        SHA1B=`openssl sha1 out.dat | awk -F' ' '{print $2}'`
+        SHA1A=`echo $CHECKSUM | awk -F' ' '{print $1}'`
+        SHA1B=`sha256sum out.dat | awk -F' ' '{print $1}'`
 
         if [  $SHA1A != $SHA1B ]; then
             echo "[`date +"%M:%S"`] The received file did not match the sent one"
@@ -57,7 +49,7 @@ echo "[`date +"%M:%S"`] Testing with packets losses and corruption."
 rm -f in.dat out.dat
 echo "[`date +"%M:%S"`] Generating a 1MB file"
 dd if=/dev/urandom bs=40000 count=25 of=in.dat 2> /dev/null
-CHECKSUM=`openssl sha1 in.dat`
+CHECKSUM=`sha256sum in.dat`
 
 (cd tests/linksim/ && make) > /dev/null
 if [ "$?" != 0 ]; then
@@ -86,8 +78,8 @@ else
         echo "-- Test failed --"
         exit 1;
     else
-        SHA1A=`echo $CHECKSUM | awk -F' ' '{print $2}'`
-        SHA1B=`openssl sha1 out.dat | awk -F' ' '{print $2}'`
+        SHA1A=`echo $CHECKSUM | awk -F' ' '{print $1}'`
+        SHA1B=`sha256sum out.dat | awk -F' ' '{print $1}'`
 
         if [  $SHA1A != $SHA1B ]; then
             echo "[`date +"%M:%S"`] The received file did not match the sent one"
