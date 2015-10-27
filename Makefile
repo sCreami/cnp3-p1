@@ -1,10 +1,7 @@
 CC      = gcc
 CFLAGS  = -Wall -Werror -Wshadow -Wextra \
-          -std=gnu99 \
-          -g
-LFLAGS  = -lz
-CCFLAGS = -I$(HOME)/local/include
-CLFLAGS = -L$(HOME)/local/lib -lcunit
+          -std=gnu99
+LFLAGS  = -lz -lcunit
 
 SRC := $(foreach ssrc, src, $(wildcard $(ssrc)/*.c))
 OBJ := $(SRC:.c=.o)
@@ -21,13 +18,13 @@ sender: src/sender.o src/socket.o src/packet.o
 
 tests:
 	@$(MAKE) cunit > /dev/null
-	LD_LIBRARY_PATH=$(HOME)/local/lib ./test
+	./test
 	@$(MAKE) all > /dev/null
 	@tests/test.sh
 
 cunit: tests/t.c src/packet.o
-	$(CC) $(CCFLAGS) -c tests/t.c -o tests/t.o
-	$(CC) tests/t.o src/packet.o -o test $(CLFLAGS) $(LFLAGS)
+	$(CC) -c tests/t.c -o tests/t.o
+	$(CC) tests/t.o src/packet.o -o test $(LFLAGS)
 
 clean:
 	rm -f $(OBJ)
