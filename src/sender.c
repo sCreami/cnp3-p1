@@ -10,9 +10,9 @@
 
 #include "locales.h"
 #include "socket.h"
+#include "packet.h" /* packet related functions and structures */
 
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
-#include "packet.h" /* packet related functions and structures */
 
 /* This structure will store the shared parameters of all functions. Its
  * definition can be found in locales.h */
