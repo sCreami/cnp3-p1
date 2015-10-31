@@ -1,3 +1,6 @@
+#ifndef _PACKET_H
+#define _PACKET_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -129,3 +132,5 @@ pkt_status_code pkt_set_payload(pkt_t *, const char *data,
 void pkt_print(pkt_t *pkt);
 /* Prints length elements of an array of char as unsigned integers*/
 void buffer_print(char *buffer, int length);
+
+#endif /* _PACKET_H */
