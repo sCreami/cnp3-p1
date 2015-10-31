@@ -76,17 +76,17 @@ void clean_seqnum(int *seqnum)
         *seqnum += 256;
 }
 
-long update_timeval(struct timeval *time)
+long update_timeval(struct timeval *t)
 {
     struct timeval current;
     long sec, usec;
 
     gettimeofday(&current, NULL);
 
-    sec  = current.tv_sec  - time->tv_sec;
-    usec = current.tv_usec - time->tv_usec;
+    sec  = current.tv_sec  - t->tv_sec;
+    usec = current.tv_usec - t->tv_usec;
 
-    memcpy(time, &current, sizeof(struct timeval));
+    memcpy(t, &current, sizeof(struct timeval));
 
     return sec * 1000 * 1000 + usec;
 }
@@ -186,7 +186,7 @@ int send_pkt(pkt_t *buffer[32], int seqnum)
     return 0;
 }
 
-int receive_pkt(pkt_t *buffer[32], struct timeval *time, uint8_t *last_ack)
+int receive_pkt(pkt_t *buffer[32], struct timeval *t, uint8_t *last_ack)
 {
     static char buf[520];
     pkt_t *pkt;
@@ -204,7 +204,7 @@ int receive_pkt(pkt_t *buffer[32], struct timeval *time, uint8_t *last_ack)
     }
     else
     {
-        update_timeval(time);
+        update_timeval(t);
 
         switch (pkt->type)
         {
@@ -240,11 +240,11 @@ int perform_transfer(void)
     uint8_t last_ack;
     ssize_t read_size;
     pkt_t *pkt_buffer[32];
-    struct timeval time, d_time;
+    struct timeval c_time, d_time;
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
     bzero(pkt_buffer, 32 * sizeof(pkt_t *));
-    update_timeval(&time);
+    update_timeval(&c_time);
     read_size = 1;
     last_ack = 0;
     delay = 0;
@@ -291,9 +291,9 @@ int perform_transfer(void)
         FD_SET(locales.sockfd, &rfds);
 
         if (delay)
-            delay = 0.5 * delay + 0.5 * update_timeval(&time);
+            delay = 0.5 * delay + 0.5 * update_timeval(&c_time);
         else
-            delay = update_timeval(&time);
+            delay = update_timeval(&c_time);
 
         d_time = (struct timeval) {
             .tv_sec  = 0,
@@ -304,7 +304,7 @@ int perform_transfer(void)
 
         if (FD_ISSET(locales.sockfd, &rfds))
         {
-            if (receive_pkt(pkt_buffer, &time, &last_ack)) {
+            if (receive_pkt(pkt_buffer, &c_time, &last_ack)) {
                 free_pkt_buffer(pkt_buffer);
                 close(ofd);
                 return 0;
