@@ -49,16 +49,16 @@ void print_warning(char * type, int value)
 
 /*FOR PKT_BUFFER USE*/
 
-pkt_t *withdraw_pkt(pkt_t *buffer[32], int index)
+pkt_t *withdraw_pkt(pkt_t *buffer[32], int i)
 {
     pkt_t *pkt;
 
-    if (!buffer[index])
+    if (!buffer[i])
         return NULL;
 
-    pkt = buffer[index];
+    pkt = buffer[i];
     locales.window++;
-    buffer[index] = NULL;
+    buffer[i] = NULL;
 
     return pkt;
 }
@@ -159,7 +159,7 @@ int receive_data(void)
     fd_set rfds;
     char buf[520];
     ssize_t recv_size;
-    struct timeval time;
+    struct timeval c_time;
     pkt_t *pkt_buffer[32];
     int ofd, write_status;
 
@@ -180,12 +180,12 @@ int receive_data(void)
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
 
-        time = (struct timeval) {
+        c_time = (struct timeval) {
             .tv_sec  = 1,
             .tv_usec = 0,
         };
 
-        select(FD_SETSIZE, &rfds, NULL, NULL, &time);
+        select(FD_SETSIZE, &rfds, NULL, NULL, &c_time);
 
         if (FD_ISSET(locales.sockfd, &rfds))
         {
