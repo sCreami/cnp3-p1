@@ -1,20 +1,15 @@
-CC      = gcc
-CFLAGS  = -Wall -Werror -Wshadow -Wextra \
-          -std=gnu99
-LFLAGS  = -lz -lcunit
-
-SRC := $(foreach ssrc, src, $(wildcard $(ssrc)/*.c))
-OBJ := $(SRC:.c=.o)
+CFLAGS  = -Wall -Werror -Wshadow -Wextra -std=gnu99
+LDFLAGS = -lz -lcunit
 
 .PHONY: tests clean
 
 all: receiver sender
 
 receiver: src/receiver.o src/socket.o src/packet.o
-	$(CC) $^ -o $@ $(LFLAGS)
+	$(CC) $^ -o $@ $(LDFLAGS)
 
 sender: src/sender.o src/socket.o src/packet.o
-	$(CC) $^ -o $@ $(LFLAGS)
+	$(CC) $^ -o $@ $(LDFLAGS)
 
 tests:
 	@$(MAKE) cunit > /dev/null
@@ -22,9 +17,8 @@ tests:
 	@$(MAKE) all > /dev/null
 	@tests/test.sh
 
-cunit: tests/t.c src/packet.o
-	$(CC) -c tests/t.c -o tests/t.o
-	$(CC) tests/t.o src/packet.o -o test $(LFLAGS)
+cunit: tests/t.o src/packet.o
+	$(CC) $^ -o test $(LDFLAGS)
 
 clean:
-	rm -f $(OBJ)
+	@rm -f $(foreach ssrc, src tests tests/simlink, $(wildcard $(ssrc)/*.o))
