@@ -3,7 +3,7 @@ set -e
 
 echo "#####################################"
 echo "# LINGI 1341 Project Testing Script #"
-echo "#       -- 26 October 2015 --       #"
+echo "#       -- 31 October 2015 --       #"
 echo "#####################################"
 
 # Running sender-receiver
@@ -43,7 +43,7 @@ else
 fi
 
 echo "[`date +"%M:%S"`] OK for checksums verification !"
-echo "[`date +"%M:%S"`] Testing with packets losses and corruption."
+echo "[`date +"%M:%S"`] Testing with packets losses and corruption"
 
 # Spaghetti duplicati codelini
 rm -f in.dat out.dat
