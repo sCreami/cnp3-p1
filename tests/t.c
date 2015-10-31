@@ -20,7 +20,7 @@ void test_encode()
     payload  = "12345";
 
     char expected_result[12] = {49, 42, 0, 5, 49, 50, 51, 52, 53, 0, 0, 0};
-    uint32_t expected_crc = crc32(0, expected_result, 12);
+    uint32_t expected_crc = crc32(0, (const Bytef *)expected_result, 12);
 
     CU_ASSERT_NOT_EQUAL(pkt, NULL);
 
@@ -58,7 +58,7 @@ void test_decode()
     /*building encoded packet*/
 
     char input[16] = {49, 42, 0, 5, 49, 50, 51, 52, 53, 0, 0, 0, 0, 0, 0, 0};
-    uint32_t crc = crc32(0, input, 12);
+    uint32_t crc = crc32(0, (const Bytef *)input, 12);
     crc = htobe32(crc);
 
     memcpy(input + 12, &crc, 4);
@@ -86,7 +86,7 @@ void test_decode()
     /*testing result for invalid crc*/
 
     input[14]++;
-    crc = crc32(0, input, 12);
+    crc = crc32(0, (const Bytef *)input, 12);
     crc = htobe32(crc);
     status = pkt_decode(input, length, pkt);
 
@@ -96,7 +96,7 @@ void test_decode()
 
     input[14]--;
     input[3] = 0b0011;
-    crc = crc32(0, input, 12);
+    crc = crc32(0, (const Bytef *)input, 12);
     crc = htobe32(crc);
     status = pkt_decode(input, length, pkt);
 
@@ -105,7 +105,7 @@ void test_decode()
     /*testing result for cut pkt (no payload nor crc)*/
 
     input[3] = 0b0101;
-    crc = crc32(0, input, 12);
+    crc = crc32(0, (const Bytef *)input, 12);
     crc = htobe32(crc);
     status = pkt_decode(input, 4, pkt);
 
@@ -119,7 +119,7 @@ void test_decode()
     /*testing for invalid type*/
 
     input[0] = 0b11110001;
-    crc = crc32(0, input, 12);
+    crc = crc32(0, (const Bytef *)input, 12);
     crc = htobe32(crc);
     status = pkt_decode(input, 4, pkt);
 
