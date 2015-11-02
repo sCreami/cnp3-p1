@@ -11,6 +11,10 @@
 
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
 
+#define WINDOW_SIZE 32
+#define PKT_BUF_SIZE 520
+#define SEQNUM_AMOUNT 256
+
 /* This structure will store the shared parameters of all functions. Its
  * definition can be found in locales.h */
 struct config locales = {
@@ -50,7 +54,7 @@ void print_warning(char * type, int value)
 
 /*FOR PKT_BUFFER USE*/
 
-pkt_t *withdraw_pkt(pkt_t *buffer[32], int i)
+pkt_t *withdraw_pkt(pkt_t *buffer[WINDOW_SIZE], int i)
 {
     pkt_t *pkt;
 
@@ -64,13 +68,13 @@ pkt_t *withdraw_pkt(pkt_t *buffer[32], int i)
     return pkt;
 }
 
-int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
+int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
 {
     int diff;
 
     diff = pkt->seqnum - locales.seqnum;
 
-    if (diff < 0 || diff >= 32 || buffer[diff])
+    if (diff < 0 || diff >= WINDOW_SIZE || buffer[diff])
     {
         pkt_del(pkt);
 
@@ -86,22 +90,22 @@ int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
     return 0;
 }
 
-void free_pkt_buffer(pkt_t *buffer[32])
+void free_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
 {
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < WINDOW_SIZE; i++)
         pkt_del(buffer[i]);
 
-    bzero(buffer, 32 * sizeof(pkt_t *));
+    bzero(buffer, WINDOW_SIZE * sizeof(pkt_t *));
 }
 
 /*FOR TRANSMISSION*/
 
-int write_in_seq_pkt(int fd, pkt_t *buffer[32])
+int write_in_seq_pkt(int fd, pkt_t *buffer[WINDOW_SIZE])
 {
     int i;
     pkt_t *pkt;
 
-    for (i = 0; i < 32; i++) {
+    for (i = 0; i < WINDOW_SIZE; i++) {
 
         pkt = withdraw_pkt(buffer, i);
 
@@ -110,7 +114,7 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
             return 0;
         }
 
-        locales.seqnum = (locales.seqnum + 1) % 256;
+        locales.seqnum = (locales.seqnum + 1) % SEQNUM_AMOUNT;
 
         if (!pkt->length && !pkt->payload) {
             pkt_del(pkt);
@@ -126,8 +130,8 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[32])
         pkt_del(pkt);
     }
 
-    if (locales.window < 31) {
-        memcpy(buffer, &buffer[i], 32 - i);
+    if (locales.window < WINDOW_SIZE - 1) {
+        memcpy(buffer, &buffer[i], WINDOW_SIZE - i);
         memset(&buffer[i], 0, i);
     }
 
@@ -158,13 +162,13 @@ int receive_data(void)
 {
     pkt_t *pkt;
     fd_set rfds;
-    char buf[520];
+    char buf[PKT_BUF_SIZE];
     ssize_t recv_size;
     struct timeval c_time;
-    pkt_t *pkt_buffer[32];
+    pkt_t *pkt_buffer[WINDOW_SIZE];
     int ofd, write_status;
 
-    bzero(pkt_buffer, 32 * sizeof(pkt_t *));
+    bzero(pkt_buffer, WINDOW_SIZE * sizeof(pkt_t *));
     ofd = (locales.filename ? open(locales.filename,
             O_WRONLY | O_CREAT | O_TRUNC, 0644) : fileno(stdout));
 
@@ -190,7 +194,7 @@ int receive_data(void)
 
         if (FD_ISSET(locales.sockfd, &rfds))
         {
-            recv_size = recv(locales.sockfd, buf, 520, MSG_DONTWAIT);
+            recv_size = recv(locales.sockfd, buf, PKT_BUF_SIZE, MSG_DONTWAIT);
 
             pkt = pkt_new();
 

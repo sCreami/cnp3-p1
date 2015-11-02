@@ -14,6 +14,11 @@
 
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
 
+#define WINDOW_SIZE 32
+#define PKT_BUF_SIZE 520
+#define READ_BUF_SIZE 512
+#define SEQNUM_AMOUNT 256
+
 /* This structure will store the shared parameters of all functions. Its
  * definition can be found in locales.h */
 struct config locales = {
@@ -48,14 +53,14 @@ void print_warning(char * type, int value)
         fprintf(stderr, "["KYEL" warn "KNRM"] %s\t%d\n", type, value);
 }
 
-void print_pkt_buffer(pkt_t *buffer[32])
+void print_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
 {
     int i;
 
     if (!locales.verbose)
         return;
 
-    for (i = 0; i < 32; i++)
+    for (i = 0; i < WINDOW_SIZE; i++)
     {
         if (i != 0 && !(i % 8))
             fprintf(stderr, "\n");
@@ -74,7 +79,7 @@ void print_pkt_buffer(pkt_t *buffer[32])
 void clean_seqnum(int *seqnum)
 {
     if (*seqnum < 0)
-        *seqnum += 256;
+        *seqnum += SEQNUM_AMOUNT;
 }
 
 long update_timeval(struct timeval *t)
@@ -94,9 +99,9 @@ long update_timeval(struct timeval *t)
 
 /*FOR PKT_BUFFER USE*/
 
-int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
+int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
 {
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < WINDOW_SIZE; i++)
         if (!buffer[i]) {
             locales.window--;
             buffer[i] = pkt;
@@ -106,22 +111,22 @@ int store_pkt(pkt_t *buffer[32], pkt_t *pkt)
     return 1;
 }
 
-pkt_t *peek_pkt(pkt_t *buffer[32], int seqnum)
+pkt_t *peek_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
     clean_seqnum(&seqnum);
 
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < WINDOW_SIZE; i++)
         if (buffer[i] && buffer[i]->seqnum == seqnum)
             return buffer[i];
 
     return NULL;
 }
 
-int remove_pkt(pkt_t *buffer[32], int seqnum)
+int remove_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
     clean_seqnum(&seqnum);
 
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < WINDOW_SIZE; i++)
         if (buffer[i] && buffer[i]->seqnum == seqnum) {
             locales.window++;
             pkt_del(buffer[i]);
@@ -132,23 +137,23 @@ int remove_pkt(pkt_t *buffer[32], int seqnum)
     return 0;
 }
 
-void drop_pkt(pkt_t *buffer[32], int seqnum)
+void drop_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
     if (remove_pkt(buffer, seqnum))
         drop_pkt(buffer, seqnum - 1);
 }
 
-void free_pkt_buffer(pkt_t *buffer[32])
+void free_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
 {
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < WINDOW_SIZE; i++)
         pkt_del(buffer[i]);
 
-    bzero(buffer, 32 * sizeof(pkt_t *));
+    bzero(buffer, WINDOW_SIZE * sizeof(pkt_t *));
 }
 
-int is_buffer_empty(pkt_t *buffer[32])
+int is_buffer_empty(pkt_t *buffer[WINDOW_SIZE])
 {
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < WINDOW_SIZE; i++)
         if (buffer[i])
             return 0;
 
@@ -157,16 +162,16 @@ int is_buffer_empty(pkt_t *buffer[32])
 
 /*FOR TRANSMISSION*/
 
-int send_pkt(pkt_t *buffer[32], int seqnum)
+int send_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
-    static char buf[520];
+    static char buf[PKT_BUF_SIZE];
     size_t length;
     pkt_t *pkt;
 
     clean_seqnum(&seqnum);
 
     pkt = peek_pkt(buffer, seqnum);
-    length = 520;
+    length = PKT_BUF_SIZE;
 
     if (!pkt) {
         print_pkt_buffer(buffer);
@@ -187,9 +192,11 @@ int send_pkt(pkt_t *buffer[32], int seqnum)
     return 0;
 }
 
-int receive_pkt(pkt_t *buffer[32], struct timeval *t, uint8_t *last_ack)
+int receive_pkt(pkt_t *buffer[WINDOW_SIZE],
+    struct timeval *t,
+    uint8_t *last_ack)
 {
-    static char buf[520];
+    static char buf[PKT_BUF_SIZE];
     pkt_t *pkt;
 
     if (recv(locales.sockfd, buf, 8, MSG_DONTWAIT) == -1) {
@@ -237,14 +244,14 @@ int perform_transfer(void)
     pkt_t *pkt;
     fd_set rfds;
     double delay;
-    char buf[512];
+    char buf[READ_BUF_SIZE];
     uint8_t last_ack;
     ssize_t read_size;
-    pkt_t *pkt_buffer[32];
+    pkt_t *pkt_buffer[WINDOW_SIZE];
     struct timeval c_time, d_time;
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
-    bzero(pkt_buffer, 32 * sizeof(pkt_t *));
+    bzero(pkt_buffer, WINDOW_SIZE * sizeof(pkt_t *));
     update_timeval(&c_time);
     read_size = 1;
     last_ack = 0;
@@ -262,7 +269,7 @@ int perform_transfer(void)
     {
         if (locales.window && read_size)
         {
-            read_size = read(ofd, buf, 512);
+            read_size = read(ofd, buf, READ_BUF_SIZE);
 
             if (read_size == -1) {
                 free_pkt_buffer(pkt_buffer);
@@ -283,7 +290,7 @@ int perform_transfer(void)
                 return 0;
             }
 
-            locales.seqnum = (locales.seqnum + 1) % 256;
+            locales.seqnum = (locales.seqnum + 1) % SEQNUM_AMOUNT;
         }
 
         if (!read_size && is_buffer_empty(pkt_buffer))
