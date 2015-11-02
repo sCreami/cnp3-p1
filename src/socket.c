@@ -94,7 +94,7 @@ int connect_socket(void)
         return 0;
     }
 
-    // ensure cleaniness
+    // ensure cleanliness
     bzero(&addr, sizeof(addr));
 
     if (real_address(locales.addr, &addr, 0)) {
