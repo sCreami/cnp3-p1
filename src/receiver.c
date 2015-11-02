@@ -44,16 +44,12 @@ static inline void print_locales(void)
                     locales.passive);
 }
 
-/*TO PRINT DATA*/
-
 /* Prints an event's  code and an associated value, such as 'NACK   17'*/
 static inline void print_warning(char * type, int value)
 {
     if (locales.verbose)
         fprintf(stderr, "["KYEL" warn "KNRM"] %s\t%d\n", type, value);
 }
-
-/*UTIL*/
 
 /* Operations on seqnum can turn them into negative integers, this function does
  * fix that. */
@@ -62,8 +58,6 @@ static inline void clean_seqnum(int *seqnum)
     if (*seqnum < 0)
         *seqnum += SEQNUM_AMOUNT;
 }
-
-/*FOR PKT_BUFFER USE*/
 
 /* extracts the packet with the indicated seqnum from the buffer. */
 pkt_t *withdraw_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
@@ -128,8 +122,6 @@ void free_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
 
     bzero(buffer, WINDOW_SIZE * sizeof(pkt_t *));
 }
-
-/*FOR TRANSMISSION*/
 
 /* Writes all packets that are in seqence and stored into the buffer on stdout
  * or the output file. ex: packet 123 to 127 if packet 128 is missing*/
