@@ -7,7 +7,7 @@
 
 #include "locales.h"
 #include "socket.h"
-#include "packet.h" /* packet related functions and structures us*/
+#include "packet.h" /* packet related functions and structures */
 
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
 
@@ -31,7 +31,7 @@ struct config locales = {
 
 /* In verbose mode, it prints the meta datas contained inside locales like the
  * address, the port, the filename, or the open socket ... */
-void print_locales(void)
+static inline void print_locales(void)
 {
     fprintf(stderr, KCYN "---- args ----    \n"
                     KCYN "Address "KNRM": %s\n"
@@ -44,23 +44,17 @@ void print_locales(void)
                     locales.passive);
 }
 
-/*TO PRINT DATA*/
-
-void print_warning(char * type, int value)
+static inline void print_warning(char * type, int value)
 {
     if (locales.verbose)
         fprintf(stderr, "["KYEL" warn "KNRM"] %s\t%d\n", type, value);
 }
 
-/*UTIL*/
-
-void clean_seqnum(int *seqnum)
+static inline void clean_seqnum(int *seqnum)
 {
     if (*seqnum < 0)
         *seqnum += SEQNUM_AMOUNT;
 }
-
-/*FOR PKT_BUFFER USE*/
 
 pkt_t *withdraw_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
@@ -115,8 +109,6 @@ void free_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
     bzero(buffer, WINDOW_SIZE * sizeof(pkt_t *));
 }
 
-/*FOR TRANSMISSION*/
-
 int write_in_seq_pkt(int fd, pkt_t *buffer[WINDOW_SIZE])
 {
     int i;
@@ -157,14 +149,12 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[WINDOW_SIZE])
 
 int send_control_pkt(ptypes_t type, uint8_t seqnum)
 {
-    static char buf[8];
-    size_t length;
     pkt_t *pkt;
+    size_t length;
+    static char buf[8];
 
     pkt = pkt_build(type, locales.window, seqnum, 0, NULL);
-
-    if (!pkt)
-        return 1;
+    if (!pkt) return 1;
 
     length = 8;
 
@@ -179,11 +169,11 @@ int receive_data(void)
 {
     pkt_t *pkt;
     fd_set rfds;
-    char buf[PKT_BUF_SIZE];
     ssize_t recv_size;
-    struct timeval c_time;
-    pkt_t *pkt_buffer[WINDOW_SIZE];
     int ofd, write_status;
+    struct timeval c_time;
+    char buf[PKT_BUF_SIZE];
+    pkt_t *pkt_buffer[WINDOW_SIZE];
 
     bzero(pkt_buffer, WINDOW_SIZE * sizeof(pkt_t *));
     ofd = (locales.filename ? open(locales.filename,
@@ -278,9 +268,6 @@ int main(int argc, char **argv)
         ok = receive_data();
 
     close(locales.sockfd);
-
-    if (locales.verbose)
-        fprintf(stderr, "["KBLU" info "KNRM"] All done\n");
 
     return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }

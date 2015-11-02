@@ -34,7 +34,7 @@ struct config locales = {
 
 /* In verbose mode, it prints the meta datas contained inside locales like the
  * address, the port, the filename, or the open socket ... */
-void print_locales(void)
+static inline void print_locales(void)
 {
     fprintf(stderr, KCYN "---- args ----    \n"
                     KCYN "Address "KNRM": %s\n"
@@ -45,22 +45,24 @@ void print_locales(void)
                     (locales.filename ? locales.filename : "stdin"));
 }
 
-/*TO PRINT DATA*/
-
-void print_warning(char * type, int value)
+static inline void print_warning(char * type, int value)
 {
     if (locales.verbose)
         fprintf(stderr, "["KYEL" warn "KNRM"] %s\t%d\n", type, value);
 }
 
+static inline void clean_seqnum(int *seqnum)
+{
+    if (*seqnum < 0)
+        *seqnum += SEQNUM_AMOUNT;
+}
+
 void print_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
 {
-    int i;
-
     if (!locales.verbose)
         return;
 
-    for (i = 0; i < WINDOW_SIZE; i++)
+    for (int i = 0; i < WINDOW_SIZE; i++)
     {
         if (i != 0 && !(i % 8))
             fprintf(stderr, "\n");
@@ -72,14 +74,6 @@ void print_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
     }
 
     printf("\n");
-}
-
-/*UTIL*/
-
-void clean_seqnum(int *seqnum)
-{
-    if (*seqnum < 0)
-        *seqnum += SEQNUM_AMOUNT;
 }
 
 long update_timeval(struct timeval *t)
@@ -96,8 +90,6 @@ long update_timeval(struct timeval *t)
 
     return sec * 1000 * 1000 + usec;
 }
-
-/*FOR PKT_BUFFER USE*/
 
 int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
 {
@@ -160,13 +152,11 @@ int is_buffer_empty(pkt_t *buffer[WINDOW_SIZE])
     return 1;
 }
 
-/*FOR TRANSMISSION*/
-
 int send_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
-    static char buf[PKT_BUF_SIZE];
-    size_t length;
     pkt_t *pkt;
+    size_t length;
+    static char buf[PKT_BUF_SIZE];
 
     clean_seqnum(&seqnum);
 
@@ -193,8 +183,8 @@ int send_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 }
 
 int receive_pkt(pkt_t *buffer[WINDOW_SIZE],
-    struct timeval *t,
-    uint8_t *last_ack)
+                struct timeval *t,
+                uint8_t *last_ack)
 {
     static char buf[PKT_BUF_SIZE];
     pkt_t *pkt;
@@ -206,12 +196,9 @@ int receive_pkt(pkt_t *buffer[WINDOW_SIZE],
 
     pkt = pkt_new();
 
-    if (pkt_decode(buf, 8, pkt) != PKT_OK)
-    {
+    if (pkt_decode(buf, 8, pkt) != PKT_OK) {
         print_warning("CORR", -1);
-    }
-    else
-    {
+    } else {
         update_timeval(t);
 
         switch (pkt->type)
@@ -244,9 +231,9 @@ int perform_transfer(void)
     pkt_t *pkt;
     fd_set rfds;
     double delay;
-    char buf[READ_BUF_SIZE];
     uint8_t last_ack;
     ssize_t read_size;
+    char buf[READ_BUF_SIZE];
     pkt_t *pkt_buffer[WINDOW_SIZE];
     struct timeval c_time, d_time;
 
@@ -361,9 +348,6 @@ int main(int argc, char **argv)
         ok = perform_transfer();
 
     close(locales.sockfd);
-
-    if (locales.verbose)
-        fprintf(stderr, "["KBLU" info "KNRM"] All done\n");
 
     return (ok ? EXIT_SUCCESS : EXIT_FAILURE);
 }
