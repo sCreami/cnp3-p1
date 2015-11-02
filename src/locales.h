@@ -32,9 +32,8 @@ struct config {
     int window;
     int seqnum;
 
-    // File
-    int in_fd;
-    int out_fd;
+    // Data
+    int pkt_cnt;
 };
 
 extern struct config locales;

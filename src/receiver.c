@@ -22,6 +22,7 @@ struct config locales = {
     .passive  = 0,
     .window   = 31,
     .seqnum   = 0,
+    .pkt_cnt  = 0,
 };
 
 /* In verbose mode, it prints the meta datas contained inside locales like the
@@ -198,6 +199,7 @@ int receive_data(void)
                 print_warning("REC", pkt->seqnum);
 
                 store_pkt(pkt_buffer, pkt);
+                locales.pkt_cnt++;
 
                 write_status = write_in_seq_pkt(ofd, pkt_buffer);
 
@@ -221,7 +223,12 @@ int receive_data(void)
     }
 
     if (locales.verbose)
+    {
         fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
+
+        fprintf(stderr, "["KBLU" info "KNRM"] %d kB received\n",
+                (locales.pkt_cnt * 512) / 1000);
+    }
 
     if (locales.filename)
         close(ofd);
