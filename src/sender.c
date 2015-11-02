@@ -15,6 +15,7 @@
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
 
 #define WINDOW_SIZE 32
+#define MAX_DELAY 50000
 #define PKT_BUF_SIZE 520
 #define READ_BUF_SIZE 512
 #define SEQNUM_AMOUNT 256
@@ -359,6 +360,12 @@ int perform_transfer(void)
         }
         else /*no data, unexpected, sending data again*/
         {
+            if (delay > MAX_DELAY)
+            {
+                free_pkt_buffer(pkt_buffer);
+                break;
+            }
+
             locales.pkt_cnt++;
             send_pkt(pkt_buffer, last_ack);
             print_warning("TIME", (int)delay);
@@ -367,7 +374,11 @@ int perform_transfer(void)
 
     /*reporting, cleaning, ...*/
 
-    if (locales.verbose)
+    if (locales.verbose && delay > MAX_DELAY)
+    {
+        fprintf(stderr, "["KRED"  ko  "KNRM"] Interrupted\n");
+    }
+    else if (locales.verbose)
     {
         fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
 
