@@ -52,20 +52,31 @@ void print_warning(char * type, int value)
         fprintf(stderr, "["KYEL" warn "KNRM"] %s\t%d\n", type, value);
 }
 
+/*UTIL*/
+
+void clean_seqnum(int *seqnum)
+{
+    if (*seqnum < 0)
+        *seqnum += SEQNUM_AMOUNT;
+}
+
 /*FOR PKT_BUFFER USE*/
 
-pkt_t *withdraw_pkt(pkt_t *buffer[WINDOW_SIZE], int i)
+pkt_t *withdraw_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
     pkt_t *pkt;
 
-    if (!buffer[i])
-        return NULL;
+    clean_seqnum(&seqnum);
 
-    pkt = buffer[i];
-    locales.window++;
-    buffer[i] = NULL;
+    for (int i = 0; i < WINDOW_SIZE; i++)
+        if (buffer[i] && buffer[i]->seqnum == seqnum) {
+            locales.window++;
+            pkt = buffer [i];
+            buffer[i] = NULL;
+            return pkt;
+        }
 
-    return pkt;
+    return NULL;
 }
 
 int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
@@ -74,20 +85,26 @@ int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
 
     diff = pkt->seqnum - locales.seqnum;
 
-    if (diff < 0 || diff >= WINDOW_SIZE || buffer[diff])
+    if (diff > WINDOW_SIZE || diff < 0)
     {
         pkt_del(pkt);
-
-        if (buffer[diff])
-            return 1;
-        else
-            return 0;
+        return 0;
     }
 
-    locales.window--;
-    buffer[diff] = pkt;
+    for (int i = 0; i < WINDOW_SIZE; i++)
+        if (buffer[i] && buffer[i]->seqnum == pkt->seqnum) {
+            pkt_del(pkt);
+            return 0;
+        }
 
-    return 0;
+    for (int i = 0; i < WINDOW_SIZE; i++)
+        if (!buffer[i]) {
+            locales.window--;
+            buffer[i] = pkt;
+            return 0;
+        }
+
+    return 1;
 }
 
 void free_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
@@ -107,7 +124,7 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[WINDOW_SIZE])
 
     for (i = 0; i < WINDOW_SIZE; i++) {
 
-        pkt = withdraw_pkt(buffer, i);
+        pkt = withdraw_pkt(buffer, locales.seqnum);
 
         if (!pkt || pkt->seqnum - locales.seqnum) {
             pkt_del(pkt);
