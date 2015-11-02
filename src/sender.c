@@ -224,6 +224,7 @@ int receive_pkt(pkt_t *buffer[WINDOW_SIZE],
 
             case PTYPE_NACK :
                 print_warning("NACK", pkt->seqnum);
+                locales.pkt_cnt++;
                 send_pkt(buffer, pkt->seqnum);
                 break;
 
@@ -331,8 +332,9 @@ int perform_transfer(void)
     {
         fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
 
-        fprintf(stderr, "["KBLU" info "KNRM"] %d kB sent\n",
-                (locales.pkt_cnt * 512) / 1000);
+        fprintf(stderr, "["KBLU" info "KNRM"]"
+                        " %d packets sent (around %d kB)\n",
+                locales.pkt_cnt, (locales.pkt_cnt * 512) / 1000);
     }
 
     if (locales.filename)

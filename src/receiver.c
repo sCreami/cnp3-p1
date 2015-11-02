@@ -179,11 +179,11 @@ int receive_data(void)
 {
     pkt_t *pkt;
     fd_set rfds;
-    char buf[PKT_BUF_SIZE];
     ssize_t recv_size;
     struct timeval c_time;
-    pkt_t *pkt_buffer[WINDOW_SIZE];
     int ofd, write_status;
+    char buf[PKT_BUF_SIZE];
+    pkt_t *pkt_buffer[WINDOW_SIZE];
 
     bzero(pkt_buffer, WINDOW_SIZE * sizeof(pkt_t *));
     ofd = (locales.filename ? open(locales.filename,
@@ -214,13 +214,13 @@ int receive_data(void)
             recv_size = recv(locales.sockfd, buf, PKT_BUF_SIZE, MSG_DONTWAIT);
 
             pkt = pkt_new();
+            locales.pkt_cnt++;
 
             if (pkt_decode(buf, (size_t)recv_size, pkt) == PKT_OK)
             {
                 print_warning("REC", pkt->seqnum);
 
                 store_pkt(pkt_buffer, pkt);
-                locales.pkt_cnt++;
 
                 write_status = write_in_seq_pkt(ofd, pkt_buffer);
 
@@ -247,8 +247,9 @@ int receive_data(void)
     {
         fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
 
-        fprintf(stderr, "["KBLU" info "KNRM"] %d kB received\n",
-                (locales.pkt_cnt * 512) / 1000);
+        fprintf(stderr, "["KBLU" info "KNRM"]"
+                        " %d packets received (around %d kB)\n",
+                locales.pkt_cnt, (locales.pkt_cnt * 512) / 1000);
     }
 
     if (locales.filename)
