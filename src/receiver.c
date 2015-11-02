@@ -213,9 +213,9 @@ int receive_data(void)
             }
             else
             {
-                pkt_del(pkt);
-                print_warning("NACK", pkt->seqnum);
                 send_control_pkt(PTYPE_NACK, pkt->seqnum);
+                print_warning("NACK", pkt->seqnum);
+                pkt_del(pkt);
             }
         }
     }
