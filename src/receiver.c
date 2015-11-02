@@ -46,6 +46,7 @@ void print_locales(void)
 
 /*TO PRINT DATA*/
 
+/* Prints an event's  code and an associated value, such as 'NACK   17'*/
 void print_warning(char * type, int value)
 {
     if (locales.verbose)
@@ -54,6 +55,8 @@ void print_warning(char * type, int value)
 
 /*UTIL*/
 
+/* Operations on seqnum can turn them into negative integers, this function does
+ * fix that. */
 void clean_seqnum(int *seqnum)
 {
     if (*seqnum < 0)
@@ -62,6 +65,7 @@ void clean_seqnum(int *seqnum)
 
 /*FOR PKT_BUFFER USE*/
 
+/* extracts the packet with the indicated seqnum from the buffer. */
 pkt_t *withdraw_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
     pkt_t *pkt;
@@ -79,11 +83,15 @@ pkt_t *withdraw_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
     return NULL;
 }
 
+/* stores a packet into the buffer, if there's room for it and if it's
+ * appropriate to do so */
 int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
 {
     int diff;
 
     diff = pkt->seqnum - locales.seqnum;
+
+    /*is it inappropriate to store the packet ?*/
 
     if (diff > WINDOW_SIZE || diff < 0)
     {
@@ -91,11 +99,15 @@ int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
         return 0;
     }
 
+    /*is the packet already in the buffer*/
+
     for (int i = 0; i < WINDOW_SIZE; i++)
         if (buffer[i] && buffer[i]->seqnum == pkt->seqnum) {
             pkt_del(pkt);
             return 0;
         }
+
+    /*let's try to store the packet*/
 
     for (int i = 0; i < WINDOW_SIZE; i++)
         if (!buffer[i]) {
@@ -107,6 +119,8 @@ int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
     return 1;
 }
 
+/* Frees the content of the buffer, mostly useful if the transfer has to be
+ * interrupted */
 void free_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
 {
     for (int i = 0; i < WINDOW_SIZE; i++)
@@ -117,14 +131,20 @@ void free_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
 
 /*FOR TRANSMISSION*/
 
+/* Writes all packets that are in seqence and stored into the buffer on stdout
+ * or the output file. ex: packet 123 to 127 if packet 128 is missing*/
 int write_in_seq_pkt(int fd, pkt_t *buffer[WINDOW_SIZE])
 {
     int i;
     pkt_t *pkt;
 
-    for (i = 0; i < WINDOW_SIZE; i++) {
+    for (i = 0; i < WINDOW_SIZE; i++)
+    {
+        /*withdrawal of the ith packet*/
 
         pkt = withdraw_pkt(buffer, locales.seqnum);
+
+        /*if ther's no such packet*/
 
         if (!pkt || pkt->seqnum - locales.seqnum) {
             pkt_del(pkt);
@@ -133,10 +153,14 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[WINDOW_SIZE])
 
         locales.seqnum = (locales.seqnum + 1) % SEQNUM_AMOUNT;
 
+        /*if it's the last packet*/
+
         if (!pkt->length && !pkt->payload) {
             pkt_del(pkt);
             return 1;
         }
+
+        /*writing packet*/
 
         if (write(fd, pkt->payload, pkt->length) == -1) {
             perror("write");
@@ -155,6 +179,7 @@ int write_in_seq_pkt(int fd, pkt_t *buffer[WINDOW_SIZE])
     return 0;
 }
 
+/* sends a pkt ACK/NACK on the socket */
 int send_control_pkt(ptypes_t type, uint8_t seqnum)
 {
     static char buf[8];
@@ -175,6 +200,7 @@ int send_control_pkt(ptypes_t type, uint8_t seqnum)
     return 0;
 }
 
+/* main loop's function, handles the transfer */
 int receive_data(void)
 {
     pkt_t *pkt;
@@ -184,6 +210,8 @@ int receive_data(void)
     int ofd, write_status;
     char buf[PKT_BUF_SIZE];
     pkt_t *pkt_buffer[WINDOW_SIZE];
+
+    /*initializing variables, if needed*/
 
     bzero(pkt_buffer, WINDOW_SIZE * sizeof(pkt_t *));
     ofd = (locales.filename ? open(locales.filename,
@@ -197,8 +225,12 @@ int receive_data(void)
     if (locales.verbose)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
+    /*main loop, for(;;) is equivalent to while(1)*/
+
     for (;;)
     {
+        /*checking if ther's data on the socket*/
+
         FD_ZERO(&rfds);
         FD_SET(locales.sockfd, &rfds);
 
@@ -209,14 +241,20 @@ int receive_data(void)
 
         select(FD_SETSIZE, &rfds, NULL, NULL, &c_time);
 
+        /*if there are ...*/
+
         if (FD_ISSET(locales.sockfd, &rfds))
         {
+            /*reading data*/
+
             recv_size = recv(locales.sockfd, buf, PKT_BUF_SIZE, MSG_DONTWAIT);
 
             pkt = pkt_new();
             locales.pkt_cnt++;
 
-            if (pkt_decode(buf, (size_t)recv_size, pkt) == PKT_OK)
+            /*decoding, storing and writing data*/
+
+            if (pkt_decode(buf, (size_t)recv_size, pkt) == PKT_OK) /*valid pkt*/
             {
                 print_warning("REC", pkt->seqnum);
 
@@ -229,19 +267,25 @@ int receive_data(void)
                     return 0;
                 }
 
+                /*sending ACK*/
+
                 send_control_pkt(PTYPE_ACK, locales.seqnum);
 
                 if (write_status)
                     break;
             }
-            else
+            else /*invalid pkt*/
             {
+                /*sending NACK*/
+
                 send_control_pkt(PTYPE_NACK, pkt->seqnum);
                 print_warning("NACK", pkt->seqnum);
                 pkt_del(pkt);
             }
         }
     }
+
+    /*reporting, cleaning, ...*/
 
     if (locales.verbose)
     {
