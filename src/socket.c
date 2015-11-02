@@ -2,6 +2,9 @@
 
 #include "socket.h"
 
+/* Retrieve the connectable address from a given string in parameter.
+ * Can also be used to determine if a string is an address or not setting the
+ * parameter flag to 1. */
 int real_address(const char *address, struct sockaddr_in6 *rval, int flag)
 {
     struct addrinfo hints, *res, *p;
@@ -39,6 +42,9 @@ int real_address(const char *address, struct sockaddr_in6 *rval, int flag)
     return 0;
 }
 
+
+/* Clean the socket buffer from the garbage sent by an unauthorized remote
+ * host. */
 int clean_buffer(int sockfd)
 {
     int ret;
@@ -50,6 +56,14 @@ int clean_buffer(int sockfd)
     return ret;
 }
 
+
+/* Get a socket, set a timeout of 30 seconds on this socket and if called by :
+ *   sender   : connect the socket to the given address retrieved by
+ *              real_address().
+ *   receiver : bind the socket to a local interface and wait from an incoming
+ *              connection to retrieve the address from the remote host and
+ *              connect to it. If the receiver is not in a passive state, check
+ *              if the incoming host is the one attended. */
 int connect_socket(void)
 {
     char dull;
