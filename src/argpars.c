@@ -36,7 +36,7 @@ void arguments_parser(int argc, char **argv)
             // followed by port if presents
             if ((opt = argv[++i])) {
                 port = atoi(opt);
-                locales.port = (port ? port : 64351);
+                locales.port = (port ? port : 64341);
                 if (!port) goto recycle;
             }
         }

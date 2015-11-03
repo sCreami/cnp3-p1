@@ -14,9 +14,9 @@
 
 #include "argpars.c" /* void arguments_parser(int argc, char **argv) */
 
-#define WINDOW_SIZE 32
-#define MAX_DELAY 50000
-#define PKT_BUF_SIZE 520
+#define WINDOW_SIZE   32
+#define MAX_DELAY     50000
+#define PKT_BUF_SIZE  520
 #define READ_BUF_SIZE 512
 #define SEQNUM_AMOUNT 256
 
@@ -37,13 +37,13 @@ struct config locales = {
  * address, the port, the filename, or the open socket ... */
 static inline void print_locales(void)
 {
-    fprintf(stderr, KCYN "---- args ----    \n"
-                    KCYN "Address "KNRM": %s\n"
-                    KCYN "Port    "KNRM": %d\n"
-                    KCYN "File    "KNRM": %s\n"
-                    KCYN "--------------    \n" KNRM,
-                    locales.addr, locales.port,
-                    (locales.filename ? locales.filename : "stdin"));
+    fprintf(stderr,
+    KCYN "---- args ----    \n"
+    KCYN "Address "KNRM": %s\n"
+    KCYN "Port    "KNRM": %d\n"
+    KCYN "File    "KNRM": %s\n"
+    KCYN "--------------    \n" KNRM,
+    locales.addr, locales.port, (locales.filename ? locales.filename:"stdin"));
 }
 
 /* Prints an event's  code and an associated value, such as 'NACK   17'*/
@@ -81,32 +81,24 @@ void print_pkt_buffer(pkt_t *buffer[WINDOW_SIZE])
     printf("\n");
 }
 
-/* Updates timeval t to current time, returns the time elapsed between now and
- * the content of t */
+/* Updates timeval t to current time, returns the
+ * time elapsed between now and the content of t */
 long update_timeval(struct timeval *t)
 {
-    struct timeval current;
     long sec, usec;
-
-    /*getting current time*/
+    struct timeval current;
 
     gettimeofday(&current, NULL);
-
-    /*geztting time elapsed*/
 
     sec  = current.tv_sec  - t->tv_sec;
     usec = current.tv_usec - t->tv_usec;
 
-    /*updating time*/
-
     memcpy(t, &current, sizeof(struct timeval));
-
-    /*returning time elapsed*/
 
     return sec * 1000 * 1000 + usec;
 }
 
-/* Stores a packet into the buffer, adapting locales.window value aswell */
+/* Stores a packet into the buffer, thus reducing locales.window of one unity */
 int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
 {
     for (int i = 0; i < WINDOW_SIZE; i++)
@@ -119,7 +111,7 @@ int store_pkt(pkt_t *buffer[WINDOW_SIZE], pkt_t *pkt)
     return 1;
 }
 
-/* Returns the packet with indicated seqnum, if there's succh packet, returns
+/* Returns the packet with indicated seqnum if there is such packet, returns
  * NULL otherwise */
 pkt_t *peek_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
@@ -132,7 +124,7 @@ pkt_t *peek_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
     return NULL;
 }
 
-/* Removes a packet from the buffer and frees the memory associated to it */
+/* Removes a packet from the buffer and frees the memory allocated to it */
 int remove_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 {
     clean_seqnum(&seqnum);
@@ -184,8 +176,7 @@ int send_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
 
     clean_seqnum(&seqnum);
 
-    /*getting packet*/
-
+    // ask for a clean packet
     pkt = peek_pkt(buffer, seqnum);
     length = PKT_BUF_SIZE;
 
@@ -195,15 +186,13 @@ int send_pkt(pkt_t *buffer[WINDOW_SIZE], int seqnum)
         return 0;
     }
 
-    /*encoding packet, if it exists*/
-
+    // encoding packet
     if (pkt_encode(pkt, buf, &length) != PKT_OK) {
         perror("pkt_encode");
         return 1;
     }
 
-    /*sending packet*/
-
+    // sending packet 
     if (send(locales.sockfd, buf, length, 0) == -1) {
         perror("send");
         return 1;
@@ -217,10 +206,8 @@ int receive_pkt(pkt_t *buffer[WINDOW_SIZE],
                 struct timeval *t,
                 uint8_t *last_ack)
 {
-    static char buf[PKT_BUF_SIZE];
     pkt_t *pkt;
-
-    /*receiving packet*/
+    static char buf[PKT_BUF_SIZE];
 
     if (recv(locales.sockfd, buf, 8, MSG_DONTWAIT) == -1) {
         perror("recv");
@@ -229,14 +216,13 @@ int receive_pkt(pkt_t *buffer[WINDOW_SIZE],
 
     pkt = pkt_new();
 
-    /*decoding packet*/
-
     if (pkt_decode(buf, 8, pkt) != PKT_OK) {
+        // if the packet is unconsistent
         print_warning("CORR", -1);
-    } else {
-        update_timeval(t);
+    }
 
-        /*reacting to the received packet*/
+    else {
+        update_timeval(t);
 
         switch (pkt->type)
         {
@@ -263,7 +249,7 @@ int receive_pkt(pkt_t *buffer[WINDOW_SIZE],
     return 0;
 }
 
-/*main loop, handles the transfer*/
+/* Main loop, handles the transfer */
 int perform_transfer(void)
 {
     int ofd;
@@ -274,16 +260,16 @@ int perform_transfer(void)
     ssize_t read_size;
     char buf[READ_BUF_SIZE];
     pkt_t *pkt_buffer[WINDOW_SIZE];
-    struct timeval c_time, d_time;
-
-    /*initialising variables, if needed*/
+    struct timeval s_time, d_time;
 
     ofd = (locales.filename ? open(locales.filename, O_RDONLY) : fileno(stdin));
-    bzero(pkt_buffer, WINDOW_SIZE * sizeof(pkt_t *));
-    update_timeval(&c_time);
+    
+    // init
     read_size = 1;
-    last_ack = 0;
-    delay = 0;
+    last_ack  = 0;
+    delay     = 0;
+    bzero(pkt_buffer, WINDOW_SIZE * sizeof(pkt));
+    update_timeval(&s_time);
 
     if (ofd == -1) {
         perror("open");
@@ -293,12 +279,10 @@ int perform_transfer(void)
     if (locales.verbose)
         fprintf(stderr, "["KBLU" info "KNRM"] Starting transfer\n");
 
-    /*main loop, for(;;) is equivalent to while(1)*/
-
     for (;;)
     {
-        /*reading data on stdin / input file if there are data and that there's
-         *enough room to store them and sends the data*/
+        // reading data on stdin / input file if there is data and that there's
+        // enough room to store them then sends the data
 
         if (locales.window && read_size)
         {
@@ -326,42 +310,39 @@ int perform_transfer(void)
             locales.seqnum = (locales.seqnum + 1) % SEQNUM_AMOUNT;
         }
 
-        /*if the transfer is completed*/
-
+        // only if the transfer is completed, stop the loop
         if (!read_size && is_buffer_empty(pkt_buffer))
             break;
 
-        /*checking if there's data on the socket*/
-
-        FD_ZERO(&rfds);
-        FD_SET(locales.sockfd, &rfds);
-
-        /*udating delay*/
-
+        // updating delay
         if (delay)
-            delay = 0.5 * delay + 0.5 * update_timeval(&c_time);
+            delay = 0.5 * delay + 0.5 * update_timeval(&s_time);
         else
-            delay = update_timeval(&c_time);
+            delay = update_timeval(&s_time);
 
         d_time = (struct timeval) {
             .tv_sec  = 0,
             .tv_usec = (long) delay
         };
 
+        FD_ZERO(&rfds);
+        FD_SET(locales.sockfd, &rfds);
+
+        // seek data on socket
         select(FD_SETSIZE, &rfds, NULL, NULL, &d_time);
 
-        if (FD_ISSET(locales.sockfd, &rfds)) /*there are data*/
-        {
-            if (receive_pkt(pkt_buffer, &c_time, &last_ack)) {
+        // there is data
+        if (FD_ISSET(locales.sockfd, &rfds)) {
+            if (receive_pkt(pkt_buffer, &s_time, &last_ack)) {
                 free_pkt_buffer(pkt_buffer);
                 close(ofd);
                 return 0;
             }
         }
-        else /*no data, unexpected, sending data again*/
-        {
-            if (delay > MAX_DELAY)
-            {
+
+        // no data, unexpected, sending data again
+        else {
+            if (delay > MAX_DELAY) {
                 free_pkt_buffer(pkt_buffer);
                 break;
             }
@@ -372,19 +353,18 @@ int perform_transfer(void)
         }
     }
 
-    /*reporting, cleaning, ...*/
+    // reporting perfomances, closing file and
+    // shutdowning I/O operation on the socket
 
-    if (locales.verbose && delay > MAX_DELAY)
-    {
+    if (locales.verbose && delay > MAX_DELAY) {
         fprintf(stderr, "["KRED"  ko  "KNRM"] Interrupted\n");
     }
-    else if (locales.verbose)
-    {
-        fprintf(stderr, "["KGRN"  ok  "KNRM"] Transfered\n");
 
-        fprintf(stderr, "["KBLU" info "KNRM"]"
-                        " %d packets sent (around %d kB)\n",
-                locales.pkt_cnt, (locales.pkt_cnt * 512) / 1000);
+    else if (locales.verbose) {
+        fprintf(stderr,
+        "["KGRN"  ok  "KNRM"] Transfered\n"
+        "["KBLU" info "KNRM"] %d packets sent (around %d kB)\n",
+        locales.pkt_cnt, (locales.pkt_cnt * 512) / 1000);
     }
 
     if (locales.filename)
